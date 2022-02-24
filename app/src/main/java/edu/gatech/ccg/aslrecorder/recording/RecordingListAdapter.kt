@@ -109,6 +109,7 @@ class RecordingListAdapter(wordList: ArrayList<String>,
                 bundle.putInt("recordingIndex", recordingIndex)
                 bundle.putString("filename", file.absolutePath)
 
+                // Here is where the recording preview begins
                 val previewFragment = VideoPreviewFragment(R.layout.recording_preview)
                 previewFragment.arguments = bundle
 

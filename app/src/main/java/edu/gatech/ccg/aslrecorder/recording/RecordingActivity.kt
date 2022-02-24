@@ -24,60 +24,50 @@
  */
 package edu.gatech.ccg.aslrecorder.recording
 
+//import kotlinx.android.synthetic.main.activity_record.*
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
-import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
-import android.hardware.camera2.*
-import android.media.MediaCodec
-import android.media.MediaRecorder
+import android.hardware.camera2.CameraDevice
+import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CaptureRequest
 import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
-import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
-import android.util.Range
-import android.view.*
+import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
+import android.view.Surface
+import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.CameraX
 import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.video.*
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import edu.gatech.ccg.aslrecorder.R
+import edu.gatech.ccg.aslrecorder.databinding.ActivityRecordBinding
 import edu.gatech.ccg.aslrecorder.randomChoice
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.BufferedInputStream
-
 import java.io.File
 import java.io.FileInputStream
-import java.lang.IllegalStateException
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.locks.Lock
+import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantLock
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 import kotlin.concurrent.withLock
-
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.video.*
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
-import edu.gatech.ccg.aslrecorder.databinding.ActivityRecordBinding
-//import kotlinx.android.synthetic.main.activity_record.*
-import java.util.concurrent.Executors
 
 
 const val WORDS_PER_SESSION = 5
@@ -158,6 +148,8 @@ class RecordingActivity : AppCompatActivity() {
      */
     private lateinit var cameraHandler: Handler
 
+    private lateinit var fileObserver: FileObserver
+
 
 //    /**
 //     * The current recording session, if we are currently capturing video.
@@ -197,7 +189,7 @@ class RecordingActivity : AppCompatActivity() {
      * The [File] where the next recording will be stored. The filename contains the word being
      * signed, as well as the date and time of the recording.
      */
-//    private lateinit var outputFile: File
+    private lateinit var outputFile: File
 
 
     /**
@@ -258,6 +250,30 @@ class RecordingActivity : AppCompatActivity() {
          */
         private const val MIN_REQUIRED_RECORDING_TIME_MILLIS: Long = 1000L
 
+    }
+
+    fun openVideoPreview(word: String, filepath: String) {
+        val bundle = Bundle()
+        bundle.putString("word", word)
+        bundle.putInt("recordingIndex", 0)
+        bundle.putString("filename", filepath)
+
+        // Here is where the recording preview begins
+        val previewFragment = VideoPreviewFragment(R.layout.recording_preview)
+        previewFragment.arguments = bundle
+
+        val transaction = this@RecordingActivity.supportFragmentManager.beginTransaction()
+        transaction.add(previewFragment, "videoPreview")
+        transaction.commit()
+    }
+
+    inner class MyFileObserver(currpath: File) :
+        FileObserver(currpath) {
+        override fun onEvent(event: Int, path: String?) {
+            Log.d("VideoDisplay", "Event " + event + ", path " + path!!)
+            // display video recording
+            this@RecordingActivity.openVideoPreview("template", path)
+        }
     }
 
     private fun startCamera() {
@@ -347,6 +363,8 @@ class RecordingActivity : AppCompatActivity() {
 
             val buttonLock = ReentrantLock()
 
+            val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.US)
+
             /**
              * Set a listener for when the user presses the record button.
              */
@@ -368,6 +386,14 @@ class RecordingActivity : AppCompatActivity() {
 
                         buttonLock.withLock {
 
+                            val currentWord = this@RecordingActivity.currentWord
+                            filename = "${UID}-${currentWord}-${sdf.format(Date())}.mp4"
+
+                            outputFile = File(context.getExternalFilesDir(Environment.DIRECTORY_MOVIES).toString(), filename)
+
+//                            fileObserver = MyFileObserver(outputFile)
+//                            fileObserver.startWatching()
+
                             Log.d(TAG, "Recording starting")
 
                             /**
@@ -376,45 +402,47 @@ class RecordingActivity : AppCompatActivity() {
 
                             // Create MediaStoreOutputOptions for our recorder
 
-                            val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.US)
-                            val currentWord = this@RecordingActivity.currentWord
-                            filename = "${UID}-${currentWord}-${sdf.format(Date())}.mp4"
-
-                            val contentValues = ContentValues().apply {
-                                put(MediaStore.Video.Media.DISPLAY_NAME, filename)
-                            }
-                            val mediaStoreOutput = MediaStoreOutputOptions.Builder(super.getContentResolver(),
-                                MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
-                                .setContentValues(contentValues)
-                                .build()
+                            val fileOutputOptions = FileOutputOptions.Builder(outputFile).build()
 
                             // 2. Configure Recorder and Start recording to the mediaStoreOutput.
 
                             currRecording = videoCapture.output
-                                .prepareRecording(context, mediaStoreOutput)
-                                .start(ContextCompat.getMainExecutor(super.getBaseContext()), {videoRecordEvent -> {
-                                    if (videoRecordEvent is VideoRecordEvent.Start) {
-                                        Log.d("currRecording", "Recording Started")
-                                    } else if (videoRecordEvent is VideoRecordEvent.Pause) {
-                                        Log.d("currRecording", "Recording Paused")
-                                    } else if (videoRecordEvent is VideoRecordEvent.Resume) {
-                                        Log.d("currRecording", "Recording Resumed")
-                                    } else if (videoRecordEvent is VideoRecordEvent.Finalize) {
-                                        val finalizeEvent = videoRecordEvent as VideoRecordEvent.Finalize
-                                        // Handles a finalize event for the active recording, checking Finalize.getError()
-                                        val error = finalizeEvent.error
-                                        if (error != VideoRecordEvent.Finalize.ERROR_NONE) {
+                                .prepareRecording(context, fileOutputOptions)
+                                .start(ContextCompat.getMainExecutor(super.getBaseContext())) { videoRecordEvent: VideoRecordEvent ->
+                                        if (videoRecordEvent is VideoRecordEvent.Start) {
+                                            Log.d("currRecording", "Recording Started")
+                                        } else if (videoRecordEvent is VideoRecordEvent.Pause) {
+                                            Log.d("currRecording", "Recording Paused")
+                                        } else if (videoRecordEvent is VideoRecordEvent.Resume) {
+                                            Log.d("currRecording", "Recording Resumed")
+                                        } else if (videoRecordEvent is VideoRecordEvent.Finalize) {
+                                            val finalizeEvent =
+                                                videoRecordEvent as VideoRecordEvent.Finalize
+                                            // Handles a finalize event for the active recording, checking Finalize.getError()
+                                            val error = finalizeEvent.error
+                                            if (error == VideoRecordEvent.Finalize.ERROR_NONE) {
+                                                val bundle = Bundle()
+                                                bundle.putString("word", currentWord)
+                                                bundle.putInt("recordingIndex", 0)
+                                                bundle.putString("filename", outputFile.absolutePath)
+
+                                                // Here is where the recording preview begins
+                                                val previewFragment = VideoPreviewFragment(R.layout.recording_preview)
+                                                previewFragment.arguments = bundle
+
+                                                val transaction = this@RecordingActivity.supportFragmentManager.beginTransaction()
+                                                transaction.add(previewFragment, "videoPreview")
+                                                transaction.commit()
+                                            }
+                                            Log.d("currRecording", "Recording Finalized")
+                                        } else {
 
                                         }
-                                        Log.d("currRecording", "Recording Finalized")
-                                    } else {
 
-                                    }
-
-                                // All events, including VideoRecordEvent.Status, contain RecordingStats.
-                                // This can be used to update the UI or track the recording duration.
-                                // val recordingStats = videoRecordEvent.recordingStats
-                            }})
+                                        // All events, including VideoRecordEvent.Status, contain RecordingStats.
+                                        // This can be used to update the UI or track the recording duration.
+                                        // val recordingStats = videoRecordEvent.recordingStats
+                                }
                         }
                     }
 
@@ -443,8 +471,7 @@ class RecordingActivity : AppCompatActivity() {
                             }
 
                             val recordingList = sessionVideoFiles[currentWord]!!
-                            Log.d("VideoPlayback", MediaStore.Video.Media.getContentUri("external").toString())
-                            val outputFile = File("/storage/emulated/0/Movies/"+filename)
+                            Log.d("VideoPlayback", outputFile.absolutePath)
                             recordingList.add(outputFile)
 
                             val wordPagerAdapter = wordPager.adapter as WordPagerAdapter
@@ -462,6 +489,9 @@ class RecordingActivity : AppCompatActivity() {
                                 Log.d(TAG, "Requesting haptic feedback (R-)")
                                 recordButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             }
+
+
+
                         }
                     }
                 }
