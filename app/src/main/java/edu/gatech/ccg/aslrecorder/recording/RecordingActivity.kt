@@ -79,7 +79,7 @@ const val WORDS_PER_SESSION = 5
  * @since   October 4, 2021
  * @version 1.1.0
  */
-class RecordingActivity : AppCompatActivity(), VideoConfirmationInterface {
+class RecordingActivity : AppCompatActivity() {
 
     private lateinit var context: Context
 
@@ -252,29 +252,6 @@ class RecordingActivity : AppCompatActivity(), VideoConfirmationInterface {
          */
         private const val MIN_REQUIRED_RECORDING_TIME_MILLIS: Long = 1000L
 
-    }
-
-    override fun statusMessage(msg: String) {
-        if (msg == "COMPLETE") {
-            wordPager.isUserInputEnabled = true
-            wordPager.currentItem += 1
-            wordPager.isUserInputEnabled = false
-        }
-    }
-
-    fun openVideoPreview(word: String, filepath: String) {
-        val bundle = Bundle()
-        bundle.putString("word", word)
-        bundle.putInt("recordingIndex", 0)
-        bundle.putString("filename", filepath)
-
-        // Here is where the recording preview begins
-        val previewFragment = VideoPreviewFragment(R.layout.recording_preview)
-        previewFragment.arguments = bundle
-
-        val transaction = this@RecordingActivity.supportFragmentManager.beginTransaction()
-        transaction.add(previewFragment, "videoPreview")
-        transaction.commit()
     }
 
 //    inner class MyFileObserver(currpath: File) :
@@ -639,33 +616,35 @@ class RecordingActivity : AppCompatActivity(), VideoConfirmationInterface {
                 Log.d("D/Curr position", "${position}")
                 Log.d("D/Curr complete", "${wordsComplete}")
                 // Animate the record button back in, if necessary.
-                if (recordButtonDisabled) {
+                if (position < wordList.size) {
+                    if (recordButtonDisabled) {
+                        recordButton.animate().apply {
+                            alpha(1.0f)
+                            duration = 250
+                        }.start()
+
+                        recordButtonDisabled = false
+                        recordButton.isClickable = true
+                        recordButton.isFocusable = true
+                    }
+
+                    this@RecordingActivity.currentWord = wordList[position]
+//                    this@RecordingActivity.outputFile = createFile(this@RecordingActivity)
+                    title = "${position + 1} of ${wordList.size}"
+                } else {
+                    // Hide record button and move the slider to the front (so users can't
+                    // accidentally press record)
                     recordButton.animate().apply {
-                        alpha(1.0f)
+                        alpha(0.0f)
                         duration = 250
                     }.start()
 
-                    recordButtonDisabled = false
-                    recordButton.isClickable = true
-                    recordButton.isFocusable = true
-                }
+                    recordButton.isClickable = false
+                    recordButton.isFocusable = false
+                    recordButtonDisabled = true
 
-                this@RecordingActivity.currentWord = wordList[position]
-//                    this@RecordingActivity.outputFile = createFile(this@RecordingActivity)
-                title = "${position + 1} of ${wordList.size}"
-//                else {
-//                    // Hide record button and move the slider to the front (so users can't
-//                    // accidentally press record)
-//                    recordButton.animate().apply {
-//                        alpha(0.0f)
-//                        duration = 250
-//                    }.start()
-//
-//                    recordButton.isClickable = false
-//                    recordButton.isFocusable = false
-//                    recordButtonDisabled = true
-//
-//                    title = "Session summary"
+                    title = "Session summary"
+                }
             }
         })
 
@@ -673,6 +652,15 @@ class RecordingActivity : AppCompatActivity(), VideoConfirmationInterface {
         recordButton.isHapticFeedbackEnabled = true
 
         initializeCamera()
+
+        this.supportFragmentManager.setFragmentResultListener("videoPreview", this) { requestKey, bundle ->
+            val result = bundle.getString("videoResult")
+            if (result == "COMPLETE") {
+                wordPager.isUserInputEnabled = true
+                wordPager.currentItem += 1
+                wordPager.isUserInputEnabled = false
+            }
+        }
     }
 
 //    private fun setupCameraCallback() {
@@ -719,7 +707,7 @@ class RecordingActivity : AppCompatActivity(), VideoConfirmationInterface {
         }
     }
 
-    public fun goToWord(index: Int) {
+    fun goToWord(index: Int) {
         wordPager.currentItem = index
     }
 

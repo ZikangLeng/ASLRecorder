@@ -40,11 +40,7 @@ import androidx.fragment.app.Fragment
 import edu.gatech.ccg.aslrecorder.R
 import java.io.File
 
-interface VideoConfirmationInterface {
-    fun statusMessage(msg: String)
-}
-
-class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout), VideoConfirmationInterface,
+class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
      SurfaceHolder.Callback, MediaPlayer.OnPreparedListener {
 
     lateinit var mediaPlayer: MediaPlayer
@@ -87,11 +83,16 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout), Vide
 
         buttonAccept.setOnClickListener {
 //            statusMessage("COMPLETE")
+            val bundle = Bundle()
+            bundle.putString("videoResult", "COMPLETE")
+            activity?.supportFragmentManager?.setFragmentResult("videoPreview", bundle)
             activity?.supportFragmentManager?.popBackStackImmediate()
         }
 
         buttonReject.setOnClickListener {
-//            statusMessage("INVALID")
+            val bundle = Bundle()
+            bundle.putString("videoResult", "FAILED")
+            activity?.supportFragmentManager?.setFragmentResult("videoPreview", bundle)
             activity?.supportFragmentManager?.popBackStackImmediate()
         }
     }
@@ -120,10 +121,5 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout), Vide
             it.start()
         }
     }
-
-    override fun statusMessage(msg: String) {
-        TODO("Not yet implemented")
-    }
-
 
 }
