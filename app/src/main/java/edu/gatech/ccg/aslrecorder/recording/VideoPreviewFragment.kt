@@ -24,19 +24,27 @@
  */
 package edu.gatech.ccg.aslrecorder.recording
 
+import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
 import android.view.SurfaceHolder
 import android.view.View
+import android.widget.Button
 import android.widget.TextView
 import android.widget.VideoView
 import androidx.annotation.LayoutRes
+import androidx.annotation.NonNull
 import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.Fragment
 import edu.gatech.ccg.aslrecorder.R
 import java.io.File
 
-class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
+interface VideoConfirmationInterface {
+    fun statusMessage(msg: String)
+}
+
+class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout), VideoConfirmationInterface,
      SurfaceHolder.Callback, MediaPlayer.OnPreparedListener {
 
     lateinit var mediaPlayer: MediaPlayer
@@ -46,6 +54,8 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
     lateinit var word: String
 
     lateinit var attemptNumber: String
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,6 +81,19 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
 
         val attemptCounter = view.findViewById<TextView>(R.id.attemptCounter)
         attemptCounter.text = attemptNumber
+
+        val buttonAccept: Button = view.findViewById(R.id.button_accept)
+        val buttonReject: Button = view.findViewById(R.id.button_reject)
+
+        buttonAccept.setOnClickListener {
+//            statusMessage("COMPLETE")
+            activity?.supportFragmentManager?.popBackStackImmediate()
+        }
+
+        buttonReject.setOnClickListener {
+//            statusMessage("INVALID")
+            activity?.supportFragmentManager?.popBackStackImmediate()
+        }
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
@@ -96,6 +119,10 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
             it.isLooping = true
             it.start()
         }
+    }
+
+    override fun statusMessage(msg: String) {
+        TODO("Not yet implemented")
     }
 
 

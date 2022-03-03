@@ -79,7 +79,7 @@ const val WORDS_PER_SESSION = 5
  * @since   October 4, 2021
  * @version 1.1.0
  */
-class RecordingActivity : AppCompatActivity() {
+class RecordingActivity : AppCompatActivity(), VideoConfirmationInterface {
 
     private lateinit var context: Context
 
@@ -232,6 +232,8 @@ class RecordingActivity : AppCompatActivity() {
      */
     private var UID: String = ""
 
+    private var wordsComplete = 1
+
     /**
      * Additional data for recordings.
      */
@@ -252,6 +254,14 @@ class RecordingActivity : AppCompatActivity() {
 
     }
 
+    override fun statusMessage(msg: String) {
+        if (msg == "COMPLETE") {
+            wordPager.isUserInputEnabled = true
+            wordPager.currentItem += 1
+            wordPager.isUserInputEnabled = false
+        }
+    }
+
     fun openVideoPreview(word: String, filepath: String) {
         val bundle = Bundle()
         bundle.putString("word", word)
@@ -267,14 +277,14 @@ class RecordingActivity : AppCompatActivity() {
         transaction.commit()
     }
 
-    inner class MyFileObserver(currpath: File) :
-        FileObserver(currpath) {
-        override fun onEvent(event: Int, path: String?) {
-            Log.d("VideoDisplay", "Event " + event + ", path " + path!!)
-            // display video recording
-            this@RecordingActivity.openVideoPreview("template", path)
-        }
-    }
+//    inner class MyFileObserver(currpath: File) :
+//        FileObserver(currpath) {
+//        override fun onEvent(event: Int, path: String?) {
+//            Log.d("VideoDisplay", "Event " + event + ", path " + path!!)
+//            // display video recording
+//            this@RecordingActivity.openVideoPreview("template", path)
+//        }
+//    }
 
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
@@ -432,6 +442,7 @@ class RecordingActivity : AppCompatActivity() {
 
                                                 val transaction = this@RecordingActivity.supportFragmentManager.beginTransaction()
                                                 transaction.add(previewFragment, "videoPreview")
+                                                transaction.addToBackStack("videoPreview")
                                                 transaction.commit()
                                             }
                                             Log.d("currRecording", "Recording Finalized")
@@ -616,42 +627,45 @@ class RecordingActivity : AppCompatActivity() {
         // Set title bar text
         title = "1 of ${wordList.size}"
 
+        wordsComplete = 1
+
         wordPager.adapter = WordPagerAdapter(this, wordList, sessionVideoFiles)
+        wordPager.isUserInputEnabled = false
         wordPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
 
                 Log.d("D", "${wordList.size}")
-                if (position < wordList.size) {
-                    // Animate the record button back in, if necessary.
-                    if (recordButtonDisabled) {
-                        recordButton.animate().apply {
-                            alpha(1.0f)
-                            duration = 250
-                        }.start()
-
-                        recordButtonDisabled = false
-                        recordButton.isClickable = true
-                        recordButton.isFocusable = true
-                    }
-
-                    this@RecordingActivity.currentWord = wordList[position]
-//                    this@RecordingActivity.outputFile = createFile(this@RecordingActivity)
-                    title = "${position + 1} of ${wordList.size}"
-                } else {
-                    // Hide record button and move the slider to the front (so users can't
-                    // accidentally press record)
+                Log.d("D/Curr position", "${position}")
+                Log.d("D/Curr complete", "${wordsComplete}")
+                // Animate the record button back in, if necessary.
+                if (recordButtonDisabled) {
                     recordButton.animate().apply {
-                        alpha(0.0f)
+                        alpha(1.0f)
                         duration = 250
                     }.start()
 
-                    recordButton.isClickable = false
-                    recordButton.isFocusable = false
-                    recordButtonDisabled = true
-
-                    title = "Session summary"
+                    recordButtonDisabled = false
+                    recordButton.isClickable = true
+                    recordButton.isFocusable = true
                 }
+
+                this@RecordingActivity.currentWord = wordList[position]
+//                    this@RecordingActivity.outputFile = createFile(this@RecordingActivity)
+                title = "${position + 1} of ${wordList.size}"
+//                else {
+//                    // Hide record button and move the slider to the front (so users can't
+//                    // accidentally press record)
+//                    recordButton.animate().apply {
+//                        alpha(0.0f)
+//                        duration = 250
+//                    }.start()
+//
+//                    recordButton.isClickable = false
+//                    recordButton.isFocusable = false
+//                    recordButtonDisabled = true
+//
+//                    title = "Session summary"
             }
         })
 
