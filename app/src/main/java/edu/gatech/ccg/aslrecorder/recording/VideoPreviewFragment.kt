@@ -47,6 +47,9 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
 
     lateinit var attemptNumber: String
 
+    var startTime: Long = 0
+    var endTime: Long = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val recordingPath = arguments?.getString("filename")!!
@@ -57,6 +60,9 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
 
         val attemptNumber = arguments?.getInt("recordingIndex")!! + 1
         this.attemptNumber = "Attempt #$attemptNumber"
+
+        startTime = arguments?.getLong("startTime")!!
+        endTime = arguments?.getLong("endTime")!!
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -94,6 +100,7 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
     override fun onPrepared(mp: MediaPlayer?) {
         mp?.let {
             it.isLooping = true
+            it.seekTo(startTime.toInt())
             it.start()
         }
     }

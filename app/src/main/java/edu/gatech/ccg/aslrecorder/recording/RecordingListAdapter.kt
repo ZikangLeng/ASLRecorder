@@ -35,10 +35,16 @@ import androidx.recyclerview.widget.RecyclerView
 import edu.gatech.ccg.aslrecorder.R
 import java.io.File
 import java.lang.ref.WeakReference
+import java.time.Duration
+import java.time.temporal.Temporal
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
-class RecordingListAdapter(wordList: ArrayList<String>,
-                           sessionFiles: HashMap<String, ArrayList<File>>,
-                           activity: RecordingActivity):
+class RecordingListAdapter(
+    wordList: ArrayList<String>,
+    sessionFiles: HashMap<String, ArrayList<RecordingEntryVideo>>,
+    activity: RecordingActivity):
     RecyclerView.Adapter<RecordingListAdapter.RecordingListItem>() {
 
     val words = wordList
@@ -102,12 +108,16 @@ class RecordingListAdapter(wordList: ArrayList<String>,
             }
 
             label.setOnClickListener {
-                val file = listAdapter.get()?.recordings?.get(word)!![recordingIndex]
+                val entry = listAdapter.get()?.recordings?.get(word)!![recordingIndex]
+
+//                val startTime = listAdapter.get()?.times.g
 
                 val bundle = Bundle()
                 bundle.putString("word", word)
                 bundle.putInt("recordingIndex", recordingIndex)
-                bundle.putString("filename", file.absolutePath)
+                bundle.putString("filename", entry.file.absolutePath)
+                bundle.putLong("startTime", Duration.between(entry.videoStart.toInstant(), entry.signStart.toInstant()).toMillis())
+                bundle.putLong("endTime", Duration.between(entry.videoStart.toInstant(), entry.signEnd.toInstant()).toMillis())
 
                 val previewFragment = VideoPreviewFragment(R.layout.recording_preview)
                 previewFragment.arguments = bundle

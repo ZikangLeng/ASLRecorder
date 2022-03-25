@@ -4,7 +4,10 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/Users/PrimaryUser/StudioProjects/ASLRecorder/app/src/main/res/layout/activity_record.xml" value="0.1" />
+        <entry key="..\:/Users/PrimaryUser/StudioProjects/ASLRecorder/app/src/main/res/layout/activity_splash.xml" value="0.20572916666666666" />
         <entry key="..\:/Users/PrimaryUser/StudioProjects/ASLRecorder/app/src/main/res/layout/permission_error.xml" value="0.203125" />
+        <entry key="..\:/Users/PrimaryUser/StudioProjects/ASLRecorder/app/src/main/res/layout/recording_list.xml" value="0.20572916666666666" />
+        <entry key="..\:/Users/PrimaryUser/StudioProjects/ASLRecorder/app/src/main/res/layout/recording_preview.xml" value="0.20572916666666666" />
       </map>
     </option>
   </component>

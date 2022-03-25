@@ -28,21 +28,21 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
-import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.graphics.Bitmap
 import android.hardware.camera2.*
-import android.media.MediaCodec
-import android.media.MediaRecorder
+import android.media.ExifInterface
+import android.media.ExifInterface.TAG_IMAGE_DESCRIPTION
+import android.media.ThumbnailUtils
 import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
 import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
-import android.util.Range
+import android.util.Size
 import android.view.*
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.CameraX
 import androidx.camera.core.Preview
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.FileProvider
@@ -52,17 +52,14 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import edu.gatech.ccg.aslrecorder.R
 import edu.gatech.ccg.aslrecorder.randomChoice
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.BufferedInputStream
 
 import java.io.File
 import java.io.FileInputStream
-import java.lang.IllegalStateException
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
@@ -70,17 +67,23 @@ import kotlin.concurrent.withLock
 
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
+import com.google.common.base.Joiner
 import edu.gatech.ccg.aslrecorder.databinding.ActivityRecordBinding
 //import kotlinx.android.synthetic.main.activity_record.*
 import java.util.concurrent.Executors
 
+import java.util.Calendar
 
 const val WORDS_PER_SESSION = 5
+
+data class RecordingEntryVideo(val file: File, val videoStart: Date, val signStart: Date, val signEnd: Date) {
+    override fun toString(): String {
+        val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss.SSS", Locale.US)
+        return "(file=${file.absolutePath}, videoStart=${sdf.format(videoStart)}, signStart=${sdf.format(signStart)}, signEnd=${sdf.format(signEnd)})"}
+}
 
 /**
  * This class handles the recording of ASL into videos.
@@ -128,9 +131,9 @@ class RecordingActivity : AppCompatActivity() {
     /**
      * Map of video recordings the user has taken
      * key (String) the word being recorded
-     * value (ArrayList<File>) list of recording files for each word
+     * value (ArrayList<Triple<File, Date, Date>>) list of recording files for each word (file, sign start time, video start time)
      */
-    var sessionVideoFiles = HashMap<String, ArrayList<File>>()
+    var sessionVideoFiles = HashMap<String, ArrayList<RecordingEntryVideo>>()
 
     /**
      * SUBSTANTIAL PORTIONS OF THE BELOW CODE BELOW ARE BORROWED
@@ -240,6 +243,16 @@ class RecordingActivity : AppCompatActivity() {
      */
     private var UID: String = ""
 
+    private lateinit var videoStartTime: Date
+
+    private lateinit var currStartTime: Date
+
+    private lateinit var currEndTime: Date
+
+    private lateinit var category: String
+
+    private lateinit var metadataFilename: String
+
     /**
      * Additional data for recordings.
      */
@@ -292,8 +305,7 @@ class RecordingActivity : AppCompatActivity() {
             // video recording
 
             val qualitySelector = QualitySelector.fromOrderedList(
-                listOf(Quality.UHD, Quality.FHD, Quality.HD, Quality.SD),
-                FallbackStrategy.lowerQualityOrHigherThan(Quality.SD))
+                listOf(Quality.UHD, Quality.FHD, Quality.HD, Quality.SD))
 
             val recorder = Recorder.Builder()
                 .setExecutor(cameraExecutor).setQualitySelector(qualitySelector)
@@ -308,6 +320,73 @@ class RecordingActivity : AppCompatActivity() {
             } catch(exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
             }
+
+            // Create MediaStoreOutputOptions for our recorder
+
+            val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss.SSS", Locale.US)
+            val currentWord = this@RecordingActivity.currentWord
+            filename = "${UID}-${category}-${sdf.format(Date())}"
+            metadataFilename = filename
+
+            val contentValues = ContentValues().apply {
+                put(MediaStore.Video.Media.DISPLAY_NAME, "$filename.mp4")
+            }
+            val mediaStoreOutput = MediaStoreOutputOptions.Builder(super.getContentResolver(),
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+                .setContentValues(contentValues)
+                .build()
+
+            // 2. Configure Recorder and Start recording to the mediaStoreOutput.
+
+            currRecording = videoCapture.output
+                .prepareRecording(context, mediaStoreOutput)
+                .start(ContextCompat.getMainExecutor(super.getBaseContext())) { videoRecordEvent ->
+                    run {
+                        if (videoRecordEvent is VideoRecordEvent.Start) {
+                            videoStartTime = Calendar.getInstance().time
+                            Log.d("currRecording", "Recording Started")
+                            if (recordButtonDisabled) {
+                                recordButton.animate().apply {
+                                    alpha(1.0f)
+                                    duration = 250
+                                }.start()
+
+                                recordButtonDisabled = false
+                                recordButton.isClickable = true
+                                recordButton.isFocusable = true
+                            }
+                        } else if (videoRecordEvent is VideoRecordEvent.Pause) {
+                            Log.d("currRecording", "Recording Paused")
+                        } else if (videoRecordEvent is VideoRecordEvent.Resume) {
+                            Log.d("currRecording", "Recording Resumed")
+                        } else if (videoRecordEvent is VideoRecordEvent.Finalize) {
+                            val finalizeEvent = videoRecordEvent as VideoRecordEvent.Finalize
+                            // Handles a finalize event for the active recording, checking Finalize.getError()
+                            val error = finalizeEvent.error
+                            if (error != VideoRecordEvent.Finalize.ERROR_NONE) {
+
+                            }
+                            recordButton.animate().apply {
+                                alpha(0.0f)
+                                duration = 250
+                            }.start()
+
+                            recordButton.isClickable = false
+                            recordButton.isFocusable = false
+                            recordButtonDisabled = true
+
+                            title = "Session summary"
+
+                            Log.d("currRecording", "Recording Finalized")
+                        } else {
+
+                        }
+
+                        // All events, including VideoRecordEvent.Status, contain RecordingStats.
+                        // This can be used to update the UI or track the recording duration.
+                        // val recordingStats = videoRecordEvent.recordingStats
+                    }
+                }
 
         }, ContextCompat.getMainExecutor(this))
 
@@ -370,51 +449,13 @@ class RecordingActivity : AppCompatActivity() {
 
                             Log.d(TAG, "Recording starting")
 
+                            currStartTime = Calendar.getInstance().time
+
                             /**
                              * Prevents screen rotation during the video recording
                              */
 
-                            // Create MediaStoreOutputOptions for our recorder
 
-                            val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.US)
-                            val currentWord = this@RecordingActivity.currentWord
-                            filename = "${UID}-${currentWord}-${sdf.format(Date())}.mp4"
-
-                            val contentValues = ContentValues().apply {
-                                put(MediaStore.Video.Media.DISPLAY_NAME, filename)
-                            }
-                            val mediaStoreOutput = MediaStoreOutputOptions.Builder(super.getContentResolver(),
-                                MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
-                                .setContentValues(contentValues)
-                                .build()
-
-                            // 2. Configure Recorder and Start recording to the mediaStoreOutput.
-
-                            currRecording = videoCapture.output
-                                .prepareRecording(context, mediaStoreOutput)
-                                .start(ContextCompat.getMainExecutor(super.getBaseContext()), {videoRecordEvent -> {
-                                    if (videoRecordEvent is VideoRecordEvent.Start) {
-                                        Log.d("currRecording", "Recording Started")
-                                    } else if (videoRecordEvent is VideoRecordEvent.Pause) {
-                                        Log.d("currRecording", "Recording Paused")
-                                    } else if (videoRecordEvent is VideoRecordEvent.Resume) {
-                                        Log.d("currRecording", "Recording Resumed")
-                                    } else if (videoRecordEvent is VideoRecordEvent.Finalize) {
-                                        val finalizeEvent = videoRecordEvent as VideoRecordEvent.Finalize
-                                        // Handles a finalize event for the active recording, checking Finalize.getError()
-                                        val error = finalizeEvent.error
-                                        if (error != VideoRecordEvent.Finalize.ERROR_NONE) {
-
-                                        }
-                                        Log.d("currRecording", "Recording Finalized")
-                                    } else {
-
-                                    }
-
-                                // All events, including VideoRecordEvent.Status, contain RecordingStats.
-                                // This can be used to update the UI or track the recording duration.
-                                // val recordingStats = videoRecordEvent.recordingStats
-                            }})
                         }
                     }
 
@@ -427,13 +468,6 @@ class RecordingActivity : AppCompatActivity() {
 
                         buttonLock.withLock {
 
-                            Log.d(
-                                TAG, "Recording stopped. Check " +
-                                        this@RecordingActivity.getExternalFilesDir(null)?.absolutePath
-                            )
-
-                            currRecording.stop()
-
                             /**
                              * Add this recording to the list of recordings for the currently-selected
                              * word.
@@ -444,8 +478,8 @@ class RecordingActivity : AppCompatActivity() {
 
                             val recordingList = sessionVideoFiles[currentWord]!!
                             Log.d("VideoPlayback", MediaStore.Video.Media.getContentUri("external").toString())
-                            val outputFile = File("/storage/emulated/0/Movies/"+filename)
-                            recordingList.add(outputFile)
+                            val outputFile = File("/storage/emulated/0/Movies/$filename.mp4")
+                            recordingList.add(RecordingEntryVideo(outputFile, videoStartTime, currStartTime, Calendar.getInstance().time))
 
                             val wordPagerAdapter = wordPager.adapter as WordPagerAdapter
                             wordPagerAdapter.updateRecordingList()
@@ -566,6 +600,12 @@ class RecordingActivity : AppCompatActivity() {
             ArrayList(listOf(*wordArray))
         }
 
+        category = if (bundle?.containsKey("CATEGORY") == true) {
+            bundle.getString("CATEGORY").toString()
+        } else {
+            "test"
+        }
+
         val randomSeed = if (bundle?.containsKey("SEED") == true) {
             bundle.getLong("SEED")
         } else {
@@ -593,17 +633,7 @@ class RecordingActivity : AppCompatActivity() {
 
                 Log.d("D", "${wordList.size}")
                 if (position < wordList.size) {
-                    // Animate the record button back in, if necessary.
-                    if (recordButtonDisabled) {
-                        recordButton.animate().apply {
-                            alpha(1.0f)
-                            duration = 250
-                        }.start()
-
-                        recordButtonDisabled = false
-                        recordButton.isClickable = true
-                        recordButton.isFocusable = true
-                    }
+                    // Animate the record button back in, if necessary
 
                     this@RecordingActivity.currentWord = wordList[position]
 //                    this@RecordingActivity.outputFile = createFile(this@RecordingActivity)
@@ -611,16 +641,14 @@ class RecordingActivity : AppCompatActivity() {
                 } else {
                     // Hide record button and move the slider to the front (so users can't
                     // accidentally press record)
-                    recordButton.animate().apply {
-                        alpha(0.0f)
-                        duration = 250
-                    }.start()
+                    Log.d(
+                        TAG, "Recording stopped. Check " +
+                                this@RecordingActivity.getExternalFilesDir(null)?.absolutePath
+                    )
 
-                    recordButton.isClickable = false
-                    recordButton.isFocusable = false
-                    recordButtonDisabled = true
+                    currRecording.stop()
 
-                    title = "Session summary"
+//                    Log.d("RecordingTimes", recordingTimes.toString())
                 }
             }
         })
@@ -675,7 +703,7 @@ class RecordingActivity : AppCompatActivity() {
         }
     }
 
-    public fun goToWord(index: Int) {
+    fun goToWord(index: Int) {
         wordPager.currentItem = index
     }
 
@@ -684,12 +712,13 @@ class RecordingActivity : AppCompatActivity() {
     }
 
     fun concludeRecordingSession() {
-        for (entry in sessionVideoFiles) {
-            for (file in entry.value) {
-                copyFileToDownloads(this.applicationContext, file)
-            }
-        }
-
+//        for (word in sessionVideoFiles) {
+//            for (entry in word.value) {
+//                copyFileToDownloads(this.applicationContext, entry.file)
+//                createTimestampFile(word.key, entry)
+//            }
+//        }
+        createTimestampFileAllinOne(sessionVideoFiles)
         finish()
     }
 
@@ -705,14 +734,15 @@ class RecordingActivity : AppCompatActivity() {
     // val finalUri : Uri? = copyFileToDownloads(context, downloadedFile)
 
     fun copyFileToDownloads(context: Context, videoFile: File): Uri? {
-                val resolver = context.contentResolver
-                return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    val contentValues = ContentValues().apply {
+        val resolver = context.contentResolver
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val contentValues = ContentValues().apply {
                 put(MediaStore.Video.VideoColumns.DISPLAY_NAME, videoFile.name)
                 put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
                 put(MediaStore.MediaColumns.SIZE, videoFile.length())
             }
             resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
+
         } else {
             val authority = "${context.packageName}.provider"
             // Modify the line below if we add support for a subfolder within Downloads
@@ -731,8 +761,82 @@ class RecordingActivity : AppCompatActivity() {
             }
         }
     }
+
     /**
      * End borrowed code from Rubén Viguera.
      */
 
+    fun createTimestampFileAllinOne(sampleVideos: HashMap<String, ArrayList<RecordingEntryVideo>>) {
+        // resort sampleVideos around files
+
+//        var sampleVideoFile = sampleVideoRecording.file
+        val thumbnailValues = ContentValues().apply {
+            put(
+                MediaStore.MediaColumns.DISPLAY_NAME,
+                "$metadataFilename-timestamps.jpg"
+            );       //file name
+            put(
+                MediaStore.MediaColumns.MIME_TYPE,
+                "image/jpeg"
+            );        //file extension, will automatically add to file
+            put(
+                MediaStore.MediaColumns.RELATIVE_PATH,
+                Environment.DIRECTORY_PICTURES
+            );     //end "/" is not mandatory
+        }
+        var uri = contentResolver.insert(
+            MediaStore.Images.Media.getContentUri("external"),
+            thumbnailValues
+        )
+        var outputThumbnail = uri?.let { contentResolver.openOutputStream(it) }
+        sampleVideos[sampleVideos.keys.random()]?.first()?.file?.let {
+            ThumbnailUtils.createVideoThumbnail(
+                it,
+                Size(16,16),
+                null
+            )?.apply {
+                compress(Bitmap.CompressFormat.JPEG, 50, outputThumbnail)
+                recycle()
+            }
+        }
+        outputThumbnail?.flush()
+        outputThumbnail?.close()
+
+        var imageFd = uri?.let { contentResolver.openFileDescriptor(it, "rw") }
+
+        var exif = imageFd?.let { ExifInterface( it.fileDescriptor ) }
+        exif?.setAttribute(TAG_IMAGE_DESCRIPTION, Joiner.on(",").withKeyValueSeparator("=").join(sampleVideos))
+        exif?.saveAttributes()
+
+    }
+    /**
+     * End borrowed code from Rubén Viguera.
+     */
+
+    fun createTimestampFile(videoWord: String, sampleVideoRecording: RecordingEntryVideo) {
+        var sampleVideoFile = sampleVideoRecording.file
+        val thumbnailValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, sampleVideoFile.name.substring(0,sampleVideoFile.name.length - sampleVideoFile.name.lastIndexOf("."))+"-"+videoWord+"-"+"-timestamps.jpg");       //file name
+            put(
+                MediaStore.MediaColumns.MIME_TYPE,
+                "image/jpeg"
+            );        //file extension, will automatically add to file
+            put(
+                MediaStore.MediaColumns.RELATIVE_PATH,
+                Environment.DIRECTORY_PICTURES
+            );     //end "/" is not mandatory
+        }
+        var uri = contentResolver.insert(
+            MediaStore.Images.Media.getContentUri("external"),
+            thumbnailValues
+        )
+        var outputThumbnail = uri?.let { contentResolver.openOutputStream(it) }
+        ThumbnailUtils.createVideoThumbnail(
+            sampleVideoFile.absolutePath,
+            MediaStore.Images.Thumbnails.MINI_KIND
+        )?.apply {
+            compress(Bitmap.CompressFormat.JPEG, 50, outputThumbnail)
+            recycle()
+        }
+    }
 }

@@ -84,4 +84,5 @@ dependencies {
     // If you want to additionally use the CameraX Extensions library
     implementation "androidx.camera:camera-extensions:1.0.0-alpha31"
 
+    implementation "com.google.guava:guava:31.0-android"
 }
