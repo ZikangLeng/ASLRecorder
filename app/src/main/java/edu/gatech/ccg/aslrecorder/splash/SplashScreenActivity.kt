@@ -1,93 +1,160 @@
-/**
- * SplashScreenActivity.kt
- * This file is part of ASLRecorder, licensed under the MIT license.
- *
- * Copyright (c) 2021 Sahir Shahryar <contact@sahirshahryar.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
 package edu.gatech.ccg.aslrecorder.splash
 
 import android.Manifest
-import android.content.DialogInterface
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.text.InputType
+import android.widget.Button
 import android.widget.EditText
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.*
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import edu.gatech.ccg.aslrecorder.R
-import java.util.*
-
+import edu.gatech.ccg.aslrecorder.databinding.ActivitySplashRevisedBinding
+import edu.gatech.ccg.aslrecorder.recording.RecordingActivity
+import edu.gatech.ccg.aslrecorder.recording.WORDS_PER_SESSION
+import edu.gatech.ccg.aslrecorder.weightedRandomChoice
+import kotlin.math.max
+import kotlin.math.min
 
 class SplashScreenActivity: AppCompatActivity() {
 
-    var UID = "";
+    var uid = ""
+    lateinit var uidBox: TextView
 
-    lateinit var recordingSessionsList: RecyclerView
+    lateinit var words: ArrayList<String>
+
+    lateinit var statsWordList: TextView
+    lateinit var statsWordCounts: TextView
+
+    lateinit var nextSessionWords: TextView
+
+    lateinit var randomizeButton: Button
+    lateinit var startRecordingButton: Button
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
-        ContextCompat.checkSelfPermission(
-                baseContext, it) == PackageManager.PERMISSION_GRANTED
+        ContextCompat.checkSelfPermission(baseContext, it) ==
+                PackageManager.PERMISSION_GRANTED
     }
 
-    private fun startCamera() {}
+    private fun setUid() {
+        val prefs = getPreferences(MODE_PRIVATE)
 
-    private fun askUserName() {
-        val alertDialog: AlertDialog = AlertDialog.Builder(this@SplashScreenActivity).create()
-        alertDialog.setTitle("Set UID")
-        alertDialog.setMessage("Please enter the UID that you were assigned.")
-        val input = EditText(this)
-        // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
-        // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
-        input.inputType = InputType.TYPE_TEXT_VARIATION_NORMAL
-        alertDialog.setView(input)
-        alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "OK",
-            DialogInterface.OnClickListener { dialog, which ->
-                recordingSessionsList = findViewById(R.id.recording_sessions_list)
-                recordingSessionsList.layoutManager = LinearLayoutManager(this)
-                recordingSessionsList.adapter = TopicListAdapter()
-                (recordingSessionsList.adapter as TopicListAdapter).UID = input.text.toString()
-                dialog.dismiss()})
-        alertDialog.setCancelable(false)
-        alertDialog.show()
+        if (prefs.getString("UID", "")!!.isNotEmpty()) {
+            this.uid = prefs.getString("UID", "")!!
+            uidBox.text = this.uid
+        } else {
+            val dialog = this.let {
+                val builder = AlertDialog.Builder(it)
+                builder.setTitle("Set UID")
+                builder.setMessage("Please enter the UID that you were assigned.")
+
+                val input = EditText(builder.context)
+                builder.setView(input)
+
+                builder.setPositiveButton("OK") {
+                        dialog, _ ->
+                    this.uid = input.text.toString()
+                    uidBox.text = this.uid
+                    with (prefs.edit()) {
+                        putString("UID", uid)
+                        apply()
+                    }
+
+                    dialog.dismiss()
+                }
+
+                builder.create()
+            }
+
+            dialog.setCancelable(false)
+            dialog.show()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_splash)
+        val binding = ActivitySplashRevisedBinding.inflate(layoutInflater)
+        val view = binding.root
+        setContentView(view)
 
-        // Request camera permissions
-        if (allPermissionsGranted()) {
-            startCamera()
-        } else {
-            ActivityCompat.requestPermissions(
-                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
+        uidBox = findViewById(R.id.uidBox)
+        setUid()
+
+        val prefs = getPreferences(MODE_PRIVATE)
+
+        val wordList = ArrayList<String>()
+        for (category in WordDefinitions.values()) {
+            for (word in resources.getStringArray(category.resourceId)) {
+                wordList.add(word)
+            }
         }
 
-        askUserName()
+        val recordingCounts = ArrayList<Int>()
+        val statsShowableWords = ArrayList<Pair<Int, String>>()
+        var totalRecordings = 0
+        for (word in wordList) {
+            val count = prefs.getInt("RECORDING_COUNT_$word", 0)
+            recordingCounts.add(count)
+            totalRecordings += count
 
+            if (count > 0) {
+                statsShowableWords.add(Pair(count, word))
+            }
+        }
+
+        statsShowableWords.sortWith(
+            compareByDescending<Pair<Int, String>> { it.first }.thenBy { it.second }
+        )
+
+        val statsWordCount = min(statsShowableWords.size, 5)
+        var wcText = ""
+        var wlText = ""
+        for (i in 0 until statsWordCount) {
+            val pair = statsShowableWords[i]
+            wlText += "\n" + pair.second
+            wcText += "\n" + pair.first + (if (pair.first == 1) " time" else " times")
+        }
+
+        statsWordList = findViewById(R.id.statsWordList)
+        statsWordCounts = findViewById(R.id.statsWordCounts)
+
+        if (wlText.isNotEmpty()) {
+            statsWordList.text = wlText.substring(1)
+            statsWordCounts.text = wcText.substring(1)
+        } else {
+            statsWordList.text = "No recordings yet!"
+            statsWordCounts.text = ""
+        }
+
+        val weights = ArrayList<Float>()
+        for (count in recordingCounts) {
+            weights.add(max(1.0f, totalRecordings.toFloat()) / max(1.0f, count.toFloat()))
+        }
+
+        getRandomWords(wordList, weights)
+        randomizeButton = findViewById(R.id.rerollButton)
+        randomizeButton.setOnClickListener {
+            getRandomWords(wordList, weights)
+        }
+
+        startRecordingButton = findViewById(R.id.startButton)
+        startRecordingButton.setOnClickListener {
+            val intent = Intent(this, RecordingActivity::class.java).apply {
+                putStringArrayListExtra("WORDS", words)
+                putExtra("UID", uid)
+            }
+
+            startActivity(intent)
+        }
+    }
+
+    fun getRandomWords(wordList: ArrayList<String>, weights: ArrayList<Float>) {
+        words = weightedRandomChoice(wordList, weights, WORDS_PER_SESSION)
+
+        nextSessionWords = findViewById(R.id.recordingList)
+        nextSessionWords.text = words.joinToString("\n")
     }
 
     companion object {
@@ -96,4 +163,5 @@ class SplashScreenActivity: AppCompatActivity() {
         private const val REQUEST_CODE_PERMISSIONS = 10
         private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE)
     }
+
 }

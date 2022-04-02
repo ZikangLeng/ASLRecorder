@@ -73,7 +73,6 @@ class TopicListAdapter: RecyclerView.Adapter<TopicListAdapter.TopicListItem>() {
                 val recordingActivityIntent = Intent(itemView.context,
                     RecordingActivity::class.java).apply {
                     putStringArrayListExtra("WORDS", wordList)
-                    putExtra("CATEGORY", title)
                     putExtra("UID", UID)
 
                     if (DISABLE_RANDOM) {

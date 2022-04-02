@@ -28,7 +28,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import edu.gatech.ccg.aslrecorder.R
-import java.io.File
+import edu.gatech.ccg.aslrecorder.summary.RecordingListFragment
 import java.util.*
 import kotlin.collections.HashMap
 

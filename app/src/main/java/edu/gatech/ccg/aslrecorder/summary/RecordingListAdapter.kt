@@ -22,7 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package edu.gatech.ccg.aslrecorder.recording
+package edu.gatech.ccg.aslrecorder.summary
 
 import android.os.Bundle
 import android.util.Log
@@ -33,18 +33,19 @@ import android.widget.ImageButton
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import edu.gatech.ccg.aslrecorder.R
-import java.io.File
+import edu.gatech.ccg.aslrecorder.recording.RecordingActivity
+import edu.gatech.ccg.aslrecorder.recording.RecordingEntryVideo
+import edu.gatech.ccg.aslrecorder.recording.VideoPreviewFragment
 import java.lang.ref.WeakReference
 import java.time.Duration
-import java.time.temporal.Temporal
-import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 class RecordingListAdapter(
     wordList: ArrayList<String>,
     sessionFiles: HashMap<String, ArrayList<RecordingEntryVideo>>,
-    activity: RecordingActivity):
+    activity: RecordingActivity
+):
     RecyclerView.Adapter<RecordingListAdapter.RecordingListItem>() {
 
     val words = wordList

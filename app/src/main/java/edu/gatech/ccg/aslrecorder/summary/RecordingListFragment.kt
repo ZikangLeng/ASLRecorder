@@ -22,7 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package edu.gatech.ccg.aslrecorder.recording
+package edu.gatech.ccg.aslrecorder.summary
 
 import android.os.Bundle
 import android.util.Log
@@ -33,6 +33,8 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import edu.gatech.ccg.aslrecorder.R
+import edu.gatech.ccg.aslrecorder.recording.RecordingActivity
+import edu.gatech.ccg.aslrecorder.recording.RecordingEntryVideo
 import java.util.*
 import kotlin.collections.HashMap
 
