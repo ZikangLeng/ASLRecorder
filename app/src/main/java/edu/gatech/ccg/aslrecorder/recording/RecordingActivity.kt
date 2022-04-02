@@ -42,6 +42,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
 import android.util.Size
 import android.view.*
+import android.widget.TextView
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -72,6 +73,7 @@ import androidx.camera.video.*
 import androidx.core.content.ContextCompat
 import com.google.common.base.Joiner
 import edu.gatech.ccg.aslrecorder.databinding.ActivityRecordBinding
+import edu.gatech.ccg.aslrecorder.padZeroes
 //import kotlinx.android.synthetic.main.activity_record.*
 import java.util.concurrent.Executors
 
@@ -101,6 +103,12 @@ class RecordingActivity : AppCompatActivity() {
      */
     lateinit var recordButton: FloatingActionButton
 
+    /**
+     * A timer that will be shown in the corner
+     */
+    lateinit var countdownTimer: CountDownTimer
+
+    lateinit var countdownText: TextView
 
     /**
      * Whether or not the recording button is disabled. When this is true,
@@ -345,16 +353,14 @@ class RecordingActivity : AppCompatActivity() {
                         if (videoRecordEvent is VideoRecordEvent.Start) {
                             videoStartTime = Calendar.getInstance().time
                             Log.d("currRecording", "Recording Started")
-                            if (recordButtonDisabled) {
-                                recordButton.animate().apply {
-                                    alpha(1.0f)
-                                    duration = 250
-                                }.start()
+                            recordButton.animate().apply {
+                                alpha(1.0f)
+                                duration = 250
+                            }.start()
 
-                                recordButtonDisabled = false
-                                recordButton.isClickable = true
-                                recordButton.isFocusable = true
-                            }
+                            recordButtonDisabled = false
+                            recordButton.isClickable = true
+                            recordButton.isFocusable = true
                         } else if (videoRecordEvent is VideoRecordEvent.Pause) {
                             Log.d("currRecording", "Recording Paused")
                         } else if (videoRecordEvent is VideoRecordEvent.Resume) {
@@ -364,20 +370,29 @@ class RecordingActivity : AppCompatActivity() {
                             // Handles a finalize event for the active recording, checking Finalize.getError()
                             val error = finalizeEvent.error
                             if (error != VideoRecordEvent.Finalize.ERROR_NONE) {
+                                Log.d("currRecording", "Error in saving")
+                            } else {
 
+                                countdownText.animate().apply {
+                                    alpha(0.0f)
+                                    duration = 250
+                                }.start()
+
+                                countdownTimer.cancel()
+
+                                recordButton.animate().apply {
+                                    alpha(0.0f)
+                                    duration = 250
+                                }.start()
+
+                                recordButton.isClickable = false
+                                recordButton.isFocusable = false
+                                recordButtonDisabled = true
+
+                                title = "Session summary"
+
+                                Log.d("currRecording", "Recording Finalized")
                             }
-                            recordButton.animate().apply {
-                                alpha(0.0f)
-                                duration = 250
-                            }.start()
-
-                            recordButton.isClickable = false
-                            recordButton.isFocusable = false
-                            recordButtonDisabled = true
-
-                            title = "Session summary"
-
-                            Log.d("currRecording", "Recording Finalized")
                         } else {
 
                         }
@@ -387,6 +402,23 @@ class RecordingActivity : AppCompatActivity() {
                         // val recordingStats = videoRecordEvent.recordingStats
                     }
                 }
+
+            countdownText = findViewById(R.id.timerLabel)
+
+            countdownTimer = object : CountDownTimer(900_000, 1000) {
+                override fun onTick(p0: Long) {
+                    val rawSeconds = (p0 / 1000).toInt() + 1
+                    val minutes = padZeroes(rawSeconds / 60, 2)
+                    val seconds = padZeroes(rawSeconds % 60, 2)
+                    countdownText.text = "$minutes:$seconds"
+                }
+
+                override fun onFinish() {
+
+                }
+            }
+
+            countdownTimer.start()
 
         }, ContextCompat.getMainExecutor(this))
 
@@ -647,6 +679,8 @@ class RecordingActivity : AppCompatActivity() {
                     )
 
                     currRecording.stop()
+
+                    wordPager.isUserInputEnabled = false
 
 //                    Log.d("RecordingTimes", recordingTimes.toString())
                 }

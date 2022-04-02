@@ -81,11 +81,6 @@ class RecordingListAdapter(
                     activity: WeakReference<RecordingActivity>) {
             val label = itemView.findViewById<TextView>(R.id.recordedWord)
             label.text = word
-
-            val jumpButton = itemView.findViewById<ImageButton>(R.id.jumpToWord)
-            jumpButton.setOnClickListener {
-                activity.get()?.goToWord(paginationIndex)
-            }
         }
     }
 

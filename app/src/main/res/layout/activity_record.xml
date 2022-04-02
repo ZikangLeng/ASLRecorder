@@ -42,7 +42,9 @@
         app:layout_constraintEnd_toEndOf="@id/aspectRatioConstraint"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="@id/aspectRatioConstraint"
-        app:layout_constraintTop_toTopOf="@id/aspectRatioConstraint" />
+        app:layout_constraintTop_toTopOf="@id/aspectRatioConstraint" >
+
+    </androidx.viewpager2.widget.ViewPager2>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/recordButton"
@@ -59,4 +61,21 @@
         app:layout_constraintStart_toStartOf="parent"
         app:srcCompat="@drawable/record"
         app:tint="@android:color/white" />
+
+    <TextView
+        android:id="@+id/timerLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="64dp"
+        android:background="@drawable/rounded_corners_translucent"
+        android:fontFamily="monospace"
+        android:padding="10dp"
+        android:text="15:00"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/recordButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
