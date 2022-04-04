@@ -28,10 +28,13 @@ class SplashScreenActivity: AppCompatActivity() {
     lateinit var statsWordList: TextView
     lateinit var statsWordCounts: TextView
 
+    lateinit var recordingCount: TextView
+
     lateinit var nextSessionWords: TextView
 
     lateinit var randomizeButton: Button
     lateinit var startRecordingButton: Button
+
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(baseContext, it) ==
@@ -82,7 +85,7 @@ class SplashScreenActivity: AppCompatActivity() {
         uidBox = findViewById(R.id.uidBox)
         setUid()
 
-        val prefs = getPreferences(MODE_PRIVATE)
+        val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
 
         val wordList = ArrayList<String>()
         for (category in WordDefinitions.values()) {
@@ -120,6 +123,8 @@ class SplashScreenActivity: AppCompatActivity() {
         statsWordList = findViewById(R.id.statsWordList)
         statsWordCounts = findViewById(R.id.statsWordCounts)
 
+        recordingCount = findViewById(R.id.recordingCount)
+
         if (wlText.isNotEmpty()) {
             statsWordList.text = wlText.substring(1)
             statsWordCounts.text = wcText.substring(1)
@@ -127,6 +132,8 @@ class SplashScreenActivity: AppCompatActivity() {
             statsWordList.text = "No recordings yet!"
             statsWordCounts.text = ""
         }
+
+        recordingCount.text = "$totalRecordings total recordings"
 
         val weights = ArrayList<Float>()
         for (count in recordingCounts) {
@@ -148,6 +155,82 @@ class SplashScreenActivity: AppCompatActivity() {
 
             startActivity(intent)
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
+
+        val wordList = ArrayList<String>()
+        for (category in WordDefinitions.values()) {
+            for (word in resources.getStringArray(category.resourceId)) {
+                wordList.add(word)
+            }
+        }
+
+        val recordingCounts = ArrayList<Int>()
+        val statsShowableWords = ArrayList<Pair<Int, String>>()
+        var totalRecordings = 0
+        for (word in wordList) {
+            val count = prefs.getInt("RECORDING_COUNT_$word", 0)
+            recordingCounts.add(count)
+            totalRecordings += count
+
+            if (count > 0) {
+                statsShowableWords.add(Pair(count, word))
+            }
+        }
+
+        statsShowableWords.sortWith(
+            compareByDescending<Pair<Int, String>> { it.first }.thenBy { it.second }
+        )
+
+        val statsWordCount = min(statsShowableWords.size, 5)
+        var wcText = ""
+        var wlText = ""
+        for (i in 0 until statsWordCount) {
+            val pair = statsShowableWords[i]
+            wlText += "\n" + pair.second
+            wcText += "\n" + pair.first + (if (pair.first == 1) " time" else " times")
+        }
+
+        statsWordList = findViewById(R.id.statsWordList)
+        statsWordCounts = findViewById(R.id.statsWordCounts)
+
+        recordingCount = findViewById(R.id.recordingCount)
+
+        if (wlText.isNotEmpty()) {
+            statsWordList.text = wlText.substring(1)
+            statsWordCounts.text = wcText.substring(1)
+        } else {
+            statsWordList.text = "No recordings yet!"
+            statsWordCounts.text = ""
+        }
+
+        recordingCount.text = "$totalRecordings total recordings"
+
+        val weights = ArrayList<Float>()
+        for (count in recordingCounts) {
+            weights.add(max(1.0f, totalRecordings.toFloat()) / max(1.0f, count.toFloat()))
+        }
+
+        getRandomWords(wordList, weights)
+        randomizeButton = findViewById(R.id.rerollButton)
+        randomizeButton.setOnClickListener {
+            getRandomWords(wordList, weights)
+        }
+
+        startRecordingButton = findViewById(R.id.startButton)
+        startRecordingButton.setOnClickListener {
+            val intent = Intent(this, RecordingActivity::class.java).apply {
+                putStringArrayListExtra("WORDS", words)
+                putExtra("UID", uid)
+            }
+
+            startActivity(intent)
+        }
+
     }
 
     fun getRandomWords(wordList: ArrayList<String>, weights: ArrayList<Float>) {

@@ -33,13 +33,25 @@ import edu.gatech.ccg.aslrecorder.R
 
 class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout) {
 
+    companion object {
+        const val TARGET_RECORDINGS = 5
+    }
+
     var label: String = label
+    lateinit var counter: TextView
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val textField = view.findViewById<TextView>(R.id.promptText)
         textField.text = label
+
+        counter = view.findViewById(R.id.recordingCounter)
+        counter.text = "0 / $TARGET_RECORDINGS"
+    }
+
+    fun updateWordCount(count: Int) {
+        counter.text = "$count / $TARGET_RECORDINGS"
     }
 
 }

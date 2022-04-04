@@ -516,6 +516,13 @@ class RecordingActivity : AppCompatActivity() {
                             val wordPagerAdapter = wordPager.adapter as WordPagerAdapter
                             wordPagerAdapter.updateRecordingList()
 
+//                            runOnUiThread(Runnable() {
+//                                fun run() {
+//                                    val currFragment =
+//                                        supportFragmentManager.findFragmentById(wordPager.currentItem) as WordPromptFragment
+//                                    currFragment.updateWordCount(2)
+//                                }
+//                            })
                             // copyFileToDownloads(this@RecordingActivity, outputFile)
                             // outputFile = createFile(this@RecordingActivity)
 
@@ -746,6 +753,17 @@ class RecordingActivity : AppCompatActivity() {
     }
 
     fun concludeRecordingSession() {
+        val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
+//        var recordingIndex = prefs.getInt("RECORDING_INDEX", 0)
+        with (prefs.edit()) {
+//            putInt("RECORDING_INDEX", recordingIndex)
+            for (entry in sessionVideoFiles) {
+                val key = "RECORDING_COUNT_${entry.key}"
+                val recordingCount = prefs.getInt(key, 0);
+                putInt(key, recordingCount + entry.value.size)
+            }
+            commit()
+        }
 //        for (word in sessionVideoFiles) {
 //            for (entry in word.value) {
 //                copyFileToDownloads(this.applicationContext, entry.file)
