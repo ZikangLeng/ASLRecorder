@@ -14,11 +14,16 @@ import edu.gatech.ccg.aslrecorder.R
 import edu.gatech.ccg.aslrecorder.databinding.ActivitySplashRevisedBinding
 import edu.gatech.ccg.aslrecorder.recording.RecordingActivity
 import edu.gatech.ccg.aslrecorder.recording.WORDS_PER_SESSION
+import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity.SplashScreenActivity.NUM_RECORDINGS
 import edu.gatech.ccg.aslrecorder.weightedRandomChoice
 import kotlin.math.max
 import kotlin.math.min
 
 class SplashScreenActivity: AppCompatActivity() {
+
+    object SplashScreenActivity {
+        const val NUM_RECORDINGS = 10
+    }
 
     var uid = ""
     lateinit var uidBox: TextView
@@ -34,7 +39,6 @@ class SplashScreenActivity: AppCompatActivity() {
 
     lateinit var randomizeButton: Button
     lateinit var startRecordingButton: Button
-
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(baseContext, it) ==
@@ -137,7 +141,8 @@ class SplashScreenActivity: AppCompatActivity() {
 
         val weights = ArrayList<Float>()
         for (count in recordingCounts) {
-            weights.add(max(1.0f, totalRecordings.toFloat()) / max(1.0f, count.toFloat()))
+//            weights.add(max(1.0f, totalRecordings.toFloat()) / max(1.0f, count.toFloat()))
+              weights.add(max(1.0f, (NUM_RECORDINGS - count).toFloat() / (NUM_RECORDINGS*wordList.size - totalRecordings).toFloat()))
         }
 
         getRandomWords(wordList, weights)
@@ -151,6 +156,7 @@ class SplashScreenActivity: AppCompatActivity() {
             val intent = Intent(this, RecordingActivity::class.java).apply {
                 putStringArrayListExtra("WORDS", words)
                 putExtra("UID", uid)
+//                putExtra("COUNT", )
             }
 
             startActivity(intent)
@@ -172,10 +178,14 @@ class SplashScreenActivity: AppCompatActivity() {
         val recordingCounts = ArrayList<Int>()
         val statsShowableWords = ArrayList<Pair<Int, String>>()
         var totalRecordings = 0
+
+        var countMap = HashMap<String, Int>()
+
         for (word in wordList) {
             val count = prefs.getInt("RECORDING_COUNT_$word", 0)
             recordingCounts.add(count)
             totalRecordings += count
+            countMap[word] = count
 
             if (count > 0) {
                 statsShowableWords.add(Pair(count, word))
@@ -212,7 +222,7 @@ class SplashScreenActivity: AppCompatActivity() {
 
         val weights = ArrayList<Float>()
         for (count in recordingCounts) {
-            weights.add(max(1.0f, totalRecordings.toFloat()) / max(1.0f, count.toFloat()))
+            weights.add(max(1.0f, (NUM_RECORDINGS - count).toFloat() / (NUM_RECORDINGS*wordList.size - totalRecordings).toFloat()))
         }
 
         getRandomWords(wordList, weights)
@@ -226,6 +236,7 @@ class SplashScreenActivity: AppCompatActivity() {
             val intent = Intent(this, RecordingActivity::class.java).apply {
                 putStringArrayListExtra("WORDS", words)
                 putExtra("UID", uid)
+                putExtra("MAP", countMap)
             }
 
             startActivity(intent)

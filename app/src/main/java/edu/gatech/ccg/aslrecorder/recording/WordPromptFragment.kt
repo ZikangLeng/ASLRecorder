@@ -30,21 +30,22 @@ import android.widget.TextView
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
 import edu.gatech.ccg.aslrecorder.R
+import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity
 
 class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout) {
 
-    companion object {
-        const val TARGET_RECORDINGS = 5
-    }
-
     var label: String = label
     lateinit var counter: TextView
+
+    private var TARGET_RECORDINGS: Int = 0
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val textField = view.findViewById<TextView>(R.id.promptText)
         textField.text = label
+
+        TARGET_RECORDINGS = SplashScreenActivity.SplashScreenActivity.NUM_RECORDINGS
 
         counter = view.findViewById(R.id.recordingCounter)
         counter.text = "0 / $TARGET_RECORDINGS"

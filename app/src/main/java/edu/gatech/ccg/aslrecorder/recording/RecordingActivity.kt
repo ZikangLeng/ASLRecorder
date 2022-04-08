@@ -42,6 +42,8 @@ import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
 import android.util.Size
 import android.view.*
+import android.widget.LinearLayout
+import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
@@ -261,6 +263,8 @@ class RecordingActivity : AppCompatActivity() {
 
     private lateinit var metadataFilename: String
 
+    private lateinit var countMap: HashMap<String, Int>
+
     /**
      * Additional data for recordings.
      */
@@ -369,27 +373,17 @@ class RecordingActivity : AppCompatActivity() {
                             val finalizeEvent = videoRecordEvent as VideoRecordEvent.Finalize
                             // Handles a finalize event for the active recording, checking Finalize.getError()
                             val error = finalizeEvent.error
+
                             if (error != VideoRecordEvent.Finalize.ERROR_NONE) {
                                 Log.d("currRecording", "Error in saving")
                             } else {
+                                window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
 
-                                countdownText.animate().apply {
-                                    alpha(0.0f)
-                                    duration = 250
-                                }.start()
+                                var loadingScreen = findViewById<LinearLayout>(R.id.loadingScreen)
+                                loadingScreen.alpha = 0.0f
 
-                                countdownTimer.cancel()
-
-                                recordButton.animate().apply {
-                                    alpha(0.0f)
-                                    duration = 250
-                                }.start()
-
-                                recordButton.isClickable = false
-                                recordButton.isFocusable = false
-                                recordButtonDisabled = true
-
-                                title = "Session summary"
+                                var loadingWheel = findViewById<RelativeLayout>(R.id.loadingPanel)
+                                loadingWheel.visibility = View.INVISIBLE
 
                                 Log.d("currRecording", "Recording Finalized")
                             }
@@ -516,13 +510,12 @@ class RecordingActivity : AppCompatActivity() {
                             val wordPagerAdapter = wordPager.adapter as WordPagerAdapter
                             wordPagerAdapter.updateRecordingList()
 
-//                            runOnUiThread(Runnable() {
-//                                fun run() {
-//                                    val currFragment =
-//                                        supportFragmentManager.findFragmentById(wordPager.currentItem) as WordPromptFragment
-//                                    currFragment.updateWordCount(2)
-//                                }
-//                            })
+                            runOnUiThread(Runnable() {
+                                val currFragment =
+                                    supportFragmentManager.findFragmentByTag("f"+wordPager.currentItem) as WordPromptFragment
+                                currFragment.updateWordCount(countMap.getOrDefault(currentWord, 0) + 1)
+                                countMap[currentWord] = countMap.getOrDefault(currentWord, 0) + 1
+                            })
                             // copyFileToDownloads(this@RecordingActivity, outputFile)
                             // outputFile = createFile(this@RecordingActivity)
 
@@ -657,6 +650,8 @@ class RecordingActivity : AppCompatActivity() {
             "999"
         }
 
+        countMap = intent.getSerializableExtra("MAP") as HashMap<String, Int>
+
         Log.d("RECORD",
             "Choosing $WORDS_PER_SESSION words from a total of ${fullWordList.size}")
         wordList = randomChoice(fullWordList, WORDS_PER_SESSION, randomSeed)
@@ -675,6 +670,14 @@ class RecordingActivity : AppCompatActivity() {
                     // Animate the record button back in, if necessary
 
                     this@RecordingActivity.currentWord = wordList[position]
+
+                    runOnUiThread(Runnable() {
+                        val currFragment =
+                            supportFragmentManager.findFragmentByTag("f$position") as WordPromptFragment
+                        currFragment.updateWordCount(countMap.getOrDefault(currentWord, 0) + 1)
+                        countMap[currentWord] = countMap.getOrDefault(currentWord, 0) + 1
+                    })
+
 //                    this@RecordingActivity.outputFile = createFile(this@RecordingActivity)
                     title = "${position + 1} of ${wordList.size}"
                 } else {
@@ -685,11 +688,31 @@ class RecordingActivity : AppCompatActivity() {
                                 this@RecordingActivity.getExternalFilesDir(null)?.absolutePath
                     )
 
+                    window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+
                     currRecording.stop()
 
                     wordPager.isUserInputEnabled = false
 
-//                    Log.d("RecordingTimes", recordingTimes.toString())
+                    countdownText.animate().apply {
+                        alpha(0.0f)
+                        duration = 250
+                    }.start()
+
+                    countdownTimer.cancel()
+
+                    recordButton.animate().apply {
+                        alpha(0.0f)
+                        duration = 250
+                    }.start()
+
+                    recordButton.isClickable = false
+                    recordButton.isFocusable = false
+                    recordButtonDisabled = true
+
+                    title = "Session summary"
+
                 }
             }
         })
