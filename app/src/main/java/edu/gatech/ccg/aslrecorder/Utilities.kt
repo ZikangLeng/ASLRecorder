@@ -25,6 +25,7 @@
 package edu.gatech.ccg.aslrecorder
 
 import android.util.Log
+import edu.gatech.ccg.aslrecorder.recording.RecordingEntryVideo
 import kotlin.random.Random
 
 /**
@@ -226,4 +227,35 @@ fun binarySearchRegion(regions: List<Float>, target: Float, lo: Int, hi: Int): I
 
         else                       -> binarySearchRegion(regions, target, mid, hi)
     }
+}
+
+fun convertRecordingEntryVideoToString(recordingEntry: RecordingEntryVideo): String {
+    var conversion: StringBuilder = StringBuilder()
+
+    conversion.append("{\'file\': \'${recordingEntry.file.absolutePath}\', ")
+    conversion.append("\'videoStart\': \'${recordingEntry.videoStart}\', ")
+    conversion.append("\'signStart\': \'${recordingEntry.signStart}\', ")
+    conversion.append("\'signEnd\': \'${recordingEntry.signEnd}\'}")
+
+    return conversion.toString()
+}
+
+fun convertRecordingListToString(sessionVideoFiles: HashMap<String, ArrayList<RecordingEntryVideo>>): String {
+    var conversion: StringBuilder = StringBuilder()
+
+    conversion.append("{")
+
+    for ((key, value) in sessionVideoFiles) {
+        conversion.append("\'$key\': [")
+        for (entry in value) {
+            val convertedEntry = convertRecordingEntryVideoToString(entry)
+            conversion.append("${convertedEntry}, ")
+        }
+        conversion.delete(conversion.length - 2, conversion.length)
+        conversion.append("], ")
+    }
+    conversion.delete(conversion.length - 2, conversion.length)
+    conversion.append("}")
+//    conversion.append("${sessionVideoFiles[0].file.absolutePath}")
+    return conversion.toString()
 }

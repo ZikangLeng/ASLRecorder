@@ -2,7 +2,7 @@
  * VideoPreviewFragment.kt
  * This file is part of ASLRecorder, licensed under the MIT license.
  *
- * Copyright (c) 2021 Sahir Shahryar <contact@sahirshahryar.com>
+ * Copyright (c) 2021 Sahir Shahryar <contact@sahirshahryar.com>, Matthew So <matthew.so@gatech.edu>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal

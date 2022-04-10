@@ -29,6 +29,7 @@ import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import edu.gatech.ccg.aslrecorder.R
 import edu.gatech.ccg.aslrecorder.summary.RecordingListFragment
+import edu.gatech.ccg.aslrecorder.summary.SaveRecordingFragment
 import java.util.*
 import kotlin.collections.HashMap
 
@@ -41,15 +42,20 @@ class WordPagerAdapter(activity: AppCompatActivity, words: ArrayList<String>,
     var wordList = words
     var sessionFiles = sessionFiles
 
+    var saveRecordingFragment: SaveRecordingFragment? = null
     var recordingListFragment: RecordingListFragment? = null
 
-    override fun getItemCount() = wordList.size + 1
+    override fun getItemCount() = wordList.size + 2
 
     override fun createFragment(position: Int): Fragment {
         return if (position < wordList.size) {
             val word = this.wordList[position]
             val result = WordPromptFragment(word, R.layout.word_prompt)
             result
+        } else if (position == wordList.size) {
+            saveRecordingFragment= SaveRecordingFragment(wordList,
+                sessionFiles, recordingActivity, R.layout.save_record)
+            saveRecordingFragment!!
         } else {
             recordingListFragment= RecordingListFragment(wordList,
                 sessionFiles, recordingActivity, R.layout.recording_list)

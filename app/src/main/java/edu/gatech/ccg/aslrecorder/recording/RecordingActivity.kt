@@ -38,6 +38,7 @@ import android.media.ThumbnailUtils
 import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
+import android.text.Layout
 import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
 import android.util.Size
@@ -74,6 +75,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
 import androidx.core.content.ContextCompat
 import com.google.common.base.Joiner
+import edu.gatech.ccg.aslrecorder.convertRecordingListToString
 import edu.gatech.ccg.aslrecorder.databinding.ActivityRecordBinding
 import edu.gatech.ccg.aslrecorder.padZeroes
 //import kotlinx.android.synthetic.main.activity_record.*
@@ -435,7 +437,7 @@ class RecordingActivity : AppCompatActivity() {
          */
         if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
             || checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
-            PackageManager.PERMISSION_GRANTED) {
+               PackageManager.PERMISSION_GRANTED) {
 
             val errorRoot = findViewById<ConstraintLayout>(R.id.main_root)
             val errorMessage = layoutInflater.inflate(R.layout.permission_error, errorRoot,
@@ -686,6 +688,14 @@ class RecordingActivity : AppCompatActivity() {
 
 //                    this@RecordingActivity.outputFile = createFile(this@RecordingActivity)
                     title = "${position + 1} of ${wordList.size}"
+                } else if (position == wordList.size) {
+                    title = "Confirm save"
+
+                    recordButton.animate().apply {
+                        alpha(0.0f)
+                        duration = 250
+                    }.start()
+
                 } else {
                     // Hide record button and move the slider to the front (so users can't
                     // accidentally press record)
@@ -870,10 +880,10 @@ class RecordingActivity : AppCompatActivity() {
         sampleVideos[sampleVideos.keys.random()]?.first()?.file?.let {
             ThumbnailUtils.createVideoThumbnail(
                 it,
-                Size(16,16),
+                Size(640,480),
                 null
             )?.apply {
-                compress(Bitmap.CompressFormat.JPEG, 50, outputThumbnail)
+                compress(Bitmap.CompressFormat.JPEG, 90, outputThumbnail)
                 recycle()
             }
         }
@@ -883,7 +893,7 @@ class RecordingActivity : AppCompatActivity() {
         var imageFd = uri?.let { contentResolver.openFileDescriptor(it, "rw") }
 
         var exif = imageFd?.let { ExifInterface( it.fileDescriptor ) }
-        exif?.setAttribute(TAG_IMAGE_DESCRIPTION, Joiner.on(",").withKeyValueSeparator("=").join(sampleVideos))
+        exif?.setAttribute(TAG_IMAGE_DESCRIPTION, convertRecordingListToString(sessionVideoFiles))
         exif?.saveAttributes()
 
     }
