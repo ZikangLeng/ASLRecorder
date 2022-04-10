@@ -362,6 +362,8 @@ class RecordingActivity : AppCompatActivity() {
                                 duration = 250
                             }.start()
 
+                            recordButton.visibility = View.VISIBLE
+
                             recordButtonDisabled = false
                             recordButton.isClickable = true
                             recordButton.isFocusable = true
@@ -433,7 +435,7 @@ class RecordingActivity : AppCompatActivity() {
          */
         if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
             || checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
-               PackageManager.PERMISSION_GRANTED) {
+            PackageManager.PERMISSION_GRANTED) {
 
             val errorRoot = findViewById<ConstraintLayout>(R.id.main_root)
             val errorMessage = layoutInflater.inflate(R.layout.permission_error, errorRoot,
@@ -660,6 +662,10 @@ class RecordingActivity : AppCompatActivity() {
         // Set title bar text
         title = "1 of ${wordList.size}"
 
+        recordButton = findViewById(R.id.recordButton)
+        recordButton.isHapticFeedbackEnabled = true
+        recordButton.visibility = View.INVISIBLE
+
         wordPager.adapter = WordPagerAdapter(this, wordList, sessionVideoFiles)
         wordPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
@@ -716,9 +722,6 @@ class RecordingActivity : AppCompatActivity() {
                 }
             }
         })
-
-        recordButton = findViewById(R.id.recordButton)
-        recordButton.isHapticFeedbackEnabled = true
 
         initializeCamera()
     }
