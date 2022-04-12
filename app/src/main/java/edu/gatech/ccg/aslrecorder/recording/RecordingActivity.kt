@@ -46,6 +46,7 @@ import android.view.*
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -267,6 +268,26 @@ class RecordingActivity : AppCompatActivity() {
 
     private lateinit var countMap: HashMap<String, Int>
 
+    private var permissions: Boolean = true
+
+    val permission =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { map ->
+            //handle individual results if desired
+            if (map[Manifest.permission.CAMERA] == true && map[Manifest.permission.WRITE_EXTERNAL_STORAGE] == true) {
+                // Access granted
+            }
+            map.entries.forEach { entry ->
+                when (entry.key) {
+                    Manifest.permission.CAMERA ->
+//                        mBinding.iconCameraPermission.isEnabled = entry.value
+                        permissions = permissions && entry.value
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE ->
+//                        mBinding.iconMicrophonePermission.isEnabled = entry.value
+                        permissions = permissions && entry.value
+                }
+            }
+        }
+
     /**
      * Additional data for recordings.
      */
@@ -447,6 +468,7 @@ class RecordingActivity : AppCompatActivity() {
             // Dim Record button
             recordButton.backgroundTintList = ColorStateList.valueOf(0xFFFA9389.toInt())
         }
+
 
         /**
          * User has given permission to use the camera
@@ -682,8 +704,8 @@ class RecordingActivity : AppCompatActivity() {
                     runOnUiThread(Runnable() {
                         val currFragment =
                             supportFragmentManager.findFragmentByTag("f$position") as WordPromptFragment
-                        currFragment.updateWordCount(countMap.getOrDefault(currentWord, 0) + 1)
-                        countMap[currentWord] = countMap.getOrDefault(currentWord, 0) + 1
+                        currFragment.updateWordCount(countMap.getOrDefault(currentWord, 0))
+                        countMap[currentWord] = countMap.getOrDefault(currentWord, 0)
                     })
 
 //                    this@RecordingActivity.outputFile = createFile(this@RecordingActivity)

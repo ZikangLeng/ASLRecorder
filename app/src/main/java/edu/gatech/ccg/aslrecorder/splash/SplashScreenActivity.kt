@@ -2,11 +2,15 @@ package edu.gatech.ccg.aslrecorder.splash
 
 import android.Manifest
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -18,6 +22,7 @@ import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity.SplashScreenActivi
 import edu.gatech.ccg.aslrecorder.weightedRandomChoice
 import kotlin.math.max
 import kotlin.math.min
+
 
 class SplashScreenActivity: AppCompatActivity() {
 
@@ -40,16 +45,51 @@ class SplashScreenActivity: AppCompatActivity() {
     lateinit var randomizeButton: Button
     lateinit var startRecordingButton: Button
 
+    lateinit var totalMap: HashMap<String, Int>
+
+    var hasRequestedPermission: Boolean = false
+
+    lateinit var globalPrefs: SharedPreferences
+    lateinit var localPrefs: SharedPreferences
+
+    lateinit var wordList: ArrayList<String>
+    lateinit var weights: ArrayList<Float>
+
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(baseContext, it) ==
                 PackageManager.PERMISSION_GRANTED
     }
 
-    private fun setUid() {
-        val prefs = getPreferences(MODE_PRIVATE)
+    val requestAllPermissions =
+        registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) {
+            map ->
+            if (map[Manifest.permission.CAMERA] == true && map[Manifest.permission.WRITE_EXTERNAL_STORAGE] == true) {
+                // Permission is granted.
+                // You can use the API that requires the permission.
+                var countMap = HashMap<String, Int>()
+                for (word in words) {
+                    countMap[word] = totalMap.getOrDefault(word, 0)
+                }
 
-        if (prefs.getString("UID", "")!!.isNotEmpty()) {
-            this.uid = prefs.getString("UID", "")!!
+                val intent = Intent(this, RecordingActivity::class.java).apply {
+                    putStringArrayListExtra("WORDS", words)
+                    putExtra("UID", uid)
+                    putExtra("MAP", countMap)
+                }
+
+                startActivity(intent)
+            } else {
+                // Permission is not granted.
+
+            }
+        }
+
+    private fun setUidAndPermissions() {
+
+        if (globalPrefs.getString("UID", "")!!.isNotEmpty()) {
+            this.uid = globalPrefs.getString("UID", "")!!
             uidBox.text = this.uid
         } else {
             val dialog = this.let {
@@ -64,7 +104,7 @@ class SplashScreenActivity: AppCompatActivity() {
                         dialog, _ ->
                     this.uid = input.text.toString()
                     uidBox.text = this.uid
-                    with (prefs.edit()) {
+                    with (globalPrefs.edit()) {
                         putString("UID", uid)
                         apply()
                     }
@@ -78,40 +118,28 @@ class SplashScreenActivity: AppCompatActivity() {
             dialog.setCancelable(false)
             dialog.show()
         }
+
+        hasRequestedPermission = globalPrefs.getBoolean("hasRequestedPermission", false)
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        val binding = ActivitySplashRevisedBinding.inflate(layoutInflater)
-        val view = binding.root
-        setContentView(view)
-
-        uidBox = findViewById(R.id.uidBox)
-        setUid()
-
-        val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
-
-        val wordList = ArrayList<String>()
-        for (category in WordDefinitions.values()) {
-            for (word in resources.getStringArray(category.resourceId)) {
-                wordList.add(word)
-            }
-        }
-
+    fun updateCounts() {
         val recordingCounts = ArrayList<Int>()
         val statsShowableWords = ArrayList<Pair<Int, String>>()
         var totalRecordings = 0
+
         for (word in wordList) {
-            val count = prefs.getInt("RECORDING_COUNT_$word", 0)
+            val count = localPrefs.getInt("RECORDING_COUNT_$word", 0)
             recordingCounts.add(count)
             totalRecordings += count
+
+            if (totalMap.isEmpty()) {
+                totalMap[word] = count
+            }
 
             if (count > 0) {
                 statsShowableWords.add(Pair(count, word))
             }
         }
-
-
 
         statsShowableWords.sortWith(
             compareByDescending<Pair<Int, String>> { it.first }.thenBy { it.second }
@@ -162,11 +190,15 @@ class SplashScreenActivity: AppCompatActivity() {
 
         recordingCount.text = "$totalRecordings total recordings"
 
-        val weights = ArrayList<Float>()
+        weights = ArrayList()
         for (count in recordingCounts) {
 //            weights.add(max(1.0f, totalRecordings.toFloat()) / max(1.0f, count.toFloat()))
             weights.add(max(1.0f, (NUM_RECORDINGS - count).toFloat() / (NUM_RECORDINGS*wordList.size - totalRecordings).toFloat()))
         }
+    }
+
+    fun setupUI() {
+        updateCounts()
 
         getRandomWords(wordList, weights)
         randomizeButton = findViewById(R.id.rerollButton)
@@ -176,95 +208,108 @@ class SplashScreenActivity: AppCompatActivity() {
 
         startRecordingButton = findViewById(R.id.startButton)
         startRecordingButton.setOnClickListener {
-            val intent = Intent(this, RecordingActivity::class.java).apply {
-                putStringArrayListExtra("WORDS", words)
-                putExtra("UID", uid)
-//                putExtra("COUNT", )
-            }
+            Log.d("Camera allowed", (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED).toString())
+            Log.d("Storage allowed", (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED).toString())
+            Log.d("Camera won't show again", shouldShowRequestPermissionRationale(Manifest.permission.CAMERA).toString())
+            Log.d("Storage won't show again", shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE).toString())
+            // check permissions here
+            when {
+                (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+                 ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) -> {
+                    // You can use the API that requires the permission.
+                    var countMap = HashMap<String, Int>()
+                    for (word in words) {
+                        countMap[word] = totalMap.getOrDefault(word, 0)
+                    }
 
-            startActivity(intent)
+                    val intent = Intent(this, RecordingActivity::class.java).apply {
+                        putStringArrayListExtra("WORDS", words)
+                        putExtra("UID", uid)
+                        putExtra("MAP", countMap)
+                    }
+
+                    startActivity(intent)
+                }
+//                !shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) &&
+//                        !shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE) -> {
+//
+//                }
+                hasRequestedPermission && ((!shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) && (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)) ||
+                        !shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE) && (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)) -> {
+
+                        val text = "Please enable camera and storage access in Settings"
+                        val toast = Toast.makeText(this, text, Toast.LENGTH_LONG)
+                        toast.show()
+                }
+                hasRequestedPermission && ((shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) ||
+                        shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) -> {
+                        val dialog = this.let {
+                            val builder = AlertDialog.Builder(it)
+                            builder.setTitle("Permissions are required to use the app")
+                            builder.setMessage("In order to record your data, we will need access to the camera and write functionality.")
+
+                            val input = EditText(builder.context)
+                            builder.setView(input)
+
+                            builder.setPositiveButton("OK") { dialog, _ ->
+                                requestAllPermissions.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE))
+                                dialog.dismiss()
+                            }
+
+                            builder.create()
+                        }
+                        dialog.setCanceledOnTouchOutside(true);
+                        dialog.setOnCancelListener {
+                            // dialog dismisses
+                            // Do your function here
+                            requestAllPermissions.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE))
+                        }
+                        dialog.show()
+
+                }
+                else -> {
+                    if (!hasRequestedPermission) {
+                        hasRequestedPermission = true
+                        with(globalPrefs.edit()) {
+                            putBoolean("hasRequestedPermission", true)
+                            apply()
+                        }
+                    }
+                    requestAllPermissions.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE))
+                }
+            }
         }
     }
 
-    override fun onResume() {
-        super.onResume()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val binding = ActivitySplashRevisedBinding.inflate(layoutInflater)
+        val view = binding.root
+        setContentView(view)
 
-        val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
+        hasRequestedPermission = false
 
-        val wordList = ArrayList<String>()
+        globalPrefs = getPreferences(MODE_PRIVATE)
+        localPrefs = getSharedPreferences("app_settings", MODE_PRIVATE)
+
+        totalMap = HashMap()
+
+        uidBox = findViewById(R.id.uidBox)
+        setUidAndPermissions()
+
+        wordList = ArrayList()
         for (category in WordDefinitions.values()) {
             for (word in resources.getStringArray(category.resourceId)) {
                 wordList.add(word)
             }
         }
 
-        val recordingCounts = ArrayList<Int>()
-        val statsShowableWords = ArrayList<Pair<Int, String>>()
-        var totalRecordings = 0
+        setupUI()
+    }
 
-        var countMap = HashMap<String, Int>()
-
-        for (word in wordList) {
-            val count = prefs.getInt("RECORDING_COUNT_$word", 0)
-            recordingCounts.add(count)
-            totalRecordings += count
-            countMap[word] = count
-
-            if (count > 0) {
-                statsShowableWords.add(Pair(count, word))
-            }
-        }
-
-        statsShowableWords.sortWith(
-            compareByDescending<Pair<Int, String>> { it.first }.thenBy { it.second }
-        )
-
-        val statsWordCount = min(statsShowableWords.size, 5)
-        var wcText = ""
-        var wlText = ""
-        for (i in 0 until statsWordCount) {
-            val pair = statsShowableWords[i]
-            wlText += "\n" + pair.second
-            wcText += "\n" + pair.first + (if (pair.first == 1) " time" else " times")
-        }
-
-        statsWordList = findViewById(R.id.statsWordList)
-        statsWordCounts = findViewById(R.id.statsWordCounts)
-
-        recordingCount = findViewById(R.id.recordingCount)
-
-        if (wlText.isNotEmpty()) {
-            statsWordList.text = wlText.substring(1)
-            statsWordCounts.text = wcText.substring(1)
-        } else {
-            statsWordList.text = "No recordings yet!"
-            statsWordCounts.text = ""
-        }
-
-        recordingCount.text = "$totalRecordings total recordings"
-
-        val weights = ArrayList<Float>()
-        for (count in recordingCounts) {
-            weights.add(max(1.0f, (NUM_RECORDINGS - count).toFloat() / (NUM_RECORDINGS*wordList.size - totalRecordings).toFloat()))
-        }
-
-        getRandomWords(wordList, weights)
-        randomizeButton = findViewById(R.id.rerollButton)
-        randomizeButton.setOnClickListener {
-            getRandomWords(wordList, weights)
-        }
-
-        startRecordingButton = findViewById(R.id.startButton)
-        startRecordingButton.setOnClickListener {
-            val intent = Intent(this, RecordingActivity::class.java).apply {
-                putStringArrayListExtra("WORDS", words)
-                putExtra("UID", uid)
-                putExtra("MAP", countMap)
-            }
-
-            startActivity(intent)
-        }
-
+    override fun onResume() {
+        super.onResume()
+        setupUI()
     }
 
     fun getRandomWords(wordList: ArrayList<String>, weights: ArrayList<Float>) {
