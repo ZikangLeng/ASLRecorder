@@ -27,6 +27,7 @@ package edu.gatech.ccg.aslrecorder.recording
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
 import android.view.SurfaceHolder
 import android.view.View
 import android.widget.TextView
@@ -35,6 +36,7 @@ import androidx.annotation.LayoutRes
 import androidx.fragment.app.DialogFragment
 import edu.gatech.ccg.aslrecorder.R
 import java.io.File
+import java.util.*
 
 class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
      SurfaceHolder.Callback, MediaPlayer.OnPreparedListener {
@@ -46,6 +48,9 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
     lateinit var word: String
 
     lateinit var attemptNumber: String
+
+    lateinit var timer: Timer
+    lateinit var timerTask: TimerTask
 
     var startTime: Long = 0
     var endTime: Long = 0
@@ -63,6 +68,8 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
 
         startTime = arguments?.getLong("startTime")!!
         endTime = arguments?.getLong("endTime")!!
+
+        timer = Timer()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -103,6 +110,20 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
             it.seekTo(startTime.toInt())
             it.start()
         }
+        var mTimerHandler: Handler = Handler()
+
+        timerTask = object : TimerTask() {
+            override fun run() {
+                mTimerHandler.post {
+                    mediaPlayer.let {
+                        it.seekTo(startTime.toInt())
+                    }
+                }
+            }
+        }
+
+        timer.schedule(timerTask, Date(Calendar.getInstance().time.time + (endTime - startTime)), endTime - startTime)
+
     }
 
 

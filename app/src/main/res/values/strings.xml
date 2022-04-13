@@ -259,4 +259,5 @@
         <item>that</item>
         <item>yourself</item>
     </string-array>
+    <string name="change_UID"><font color='#0000FF'>(change)</font></string>
 </resources>

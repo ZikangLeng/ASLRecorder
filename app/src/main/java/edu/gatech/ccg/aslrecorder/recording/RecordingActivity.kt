@@ -46,6 +46,7 @@ import android.view.*
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
@@ -269,6 +270,8 @@ class RecordingActivity : AppCompatActivity() {
     private lateinit var countMap: HashMap<String, Int>
 
     private var permissions: Boolean = true
+
+    private var intermediateScreen: Boolean = false
 
     val permission =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { map ->
@@ -661,7 +664,7 @@ class RecordingActivity : AppCompatActivity() {
         category = if (bundle?.containsKey("CATEGORY") == true) {
             bundle.getString("CATEGORY").toString()
         } else {
-            "test"
+            "randombatch"
         }
 
         val randomSeed = if (bundle?.containsKey("SEED") == true) {
@@ -710,8 +713,27 @@ class RecordingActivity : AppCompatActivity() {
 
 //                    this@RecordingActivity.outputFile = createFile(this@RecordingActivity)
                     title = "${position + 1} of ${wordList.size}"
+
+                    if (recordButtonDisabled) {
+                        recordButton.isClickable = true
+                        recordButton.isFocusable = true
+                        recordButtonDisabled = false
+
+                        recordButton.animate().apply {
+                            alpha(1.0f)
+                            duration = 250
+                        }.start()
+                    }
+
+                    intermediateScreen = false
                 } else if (position == wordList.size) {
-                    title = "Confirm save"
+                    title = "Save or continue?"
+
+                    intermediateScreen = true
+
+                    recordButton.isClickable = false
+                    recordButton.isFocusable = false
+                    recordButtonDisabled = true
 
                     recordButton.animate().apply {
                         alpha(0.0f)
@@ -725,6 +747,8 @@ class RecordingActivity : AppCompatActivity() {
                         TAG, "Recording stopped. Check " +
                                 this@RecordingActivity.getExternalFilesDir(null)?.absolutePath
                     )
+
+                    intermediateScreen = false
 
                     window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                         WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
@@ -918,6 +942,9 @@ class RecordingActivity : AppCompatActivity() {
         exif?.setAttribute(TAG_IMAGE_DESCRIPTION, convertRecordingListToString(sessionVideoFiles))
         exif?.saveAttributes()
 
+        val text = "Video successfully saved"
+        val toast = Toast.makeText(this, text, Toast.LENGTH_SHORT)
+        toast.show()
     }
     /**
      * End borrowed code from Rubén Viguera.

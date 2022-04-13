@@ -1,11 +1,14 @@
 package edu.gatech.ccg.aslrecorder.splash
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.view.MotionEvent
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -55,6 +58,12 @@ class SplashScreenActivity: AppCompatActivity() {
     lateinit var wordList: ArrayList<String>
     lateinit var weights: ArrayList<Float>
 
+    lateinit var changeUID: TextView
+
+    fun onChangeUIDClick(v: View) {
+        setUidAndPermissions()
+    }
+
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(baseContext, it) ==
                 PackageManager.PERMISSION_GRANTED
@@ -82,16 +91,13 @@ class SplashScreenActivity: AppCompatActivity() {
                 startActivity(intent)
             } else {
                 // Permission is not granted.
-
+                val text = "Cannot begin recording since permissions not granted"
+                val toast = Toast.makeText(this, text, Toast.LENGTH_SHORT)
+                toast.show()
             }
         }
 
     private fun setUidAndPermissions() {
-
-        if (globalPrefs.getString("UID", "")!!.isNotEmpty()) {
-            this.uid = globalPrefs.getString("UID", "")!!
-            uidBox.text = this.uid
-        } else {
             val dialog = this.let {
                 val builder = AlertDialog.Builder(it)
                 builder.setTitle("Set UID")
@@ -117,9 +123,6 @@ class SplashScreenActivity: AppCompatActivity() {
 
             dialog.setCancelable(false)
             dialog.show()
-        }
-
-        hasRequestedPermission = globalPrefs.getBoolean("hasRequestedPermission", false)
     }
 
     fun updateCounts() {
@@ -248,9 +251,6 @@ class SplashScreenActivity: AppCompatActivity() {
                             builder.setTitle("Permissions are required to use the app")
                             builder.setMessage("In order to record your data, we will need access to the camera and write functionality.")
 
-                            val input = EditText(builder.context)
-                            builder.setView(input)
-
                             builder.setPositiveButton("OK") { dialog, _ ->
                                 requestAllPermissions.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE))
                                 dialog.dismiss()
@@ -292,10 +292,20 @@ class SplashScreenActivity: AppCompatActivity() {
         globalPrefs = getPreferences(MODE_PRIVATE)
         localPrefs = getSharedPreferences("app_settings", MODE_PRIVATE)
 
+        hasRequestedPermission = globalPrefs.getBoolean("hasRequestedPermission", false)
+
         totalMap = HashMap()
 
         uidBox = findViewById(R.id.uidBox)
-        setUidAndPermissions()
+
+        if (globalPrefs.getString("UID", "")!!.isNotEmpty()) {
+            this.uid = globalPrefs.getString("UID", "")!!
+            uidBox.text = this.uid
+        } else {
+            setUidAndPermissions()
+        }
+
+        changeUID = findViewById(R.id.changeUID)
 
         wordList = ArrayList()
         for (category in WordDefinitions.values()) {
