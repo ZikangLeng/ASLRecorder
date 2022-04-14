@@ -196,7 +196,7 @@ class SplashScreenActivity: AppCompatActivity() {
         weights = ArrayList()
         for (count in recordingCounts) {
 //            weights.add(max(1.0f, totalRecordings.toFloat()) / max(1.0f, count.toFloat()))
-            weights.add(max(1.0f, (NUM_RECORDINGS - count).toFloat() / (NUM_RECORDINGS*wordList.size - totalRecordings).toFloat()))
+            weights.add(min(1.0e-3f, (NUM_RECORDINGS - count).toFloat() / (NUM_RECORDINGS*wordList.size - totalRecordings).toFloat()))
         }
     }
 
