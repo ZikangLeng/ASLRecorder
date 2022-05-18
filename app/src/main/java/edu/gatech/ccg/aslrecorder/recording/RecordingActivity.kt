@@ -31,6 +31,12 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.PorterDuff
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.LayerDrawable
+import android.graphics.drawable.GradientDrawable
 import android.hardware.camera2.*
 import android.media.ExifInterface
 import android.media.ExifInterface.TAG_IMAGE_DESCRIPTION
@@ -43,12 +49,10 @@ import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
 import android.util.Size
 import android.view.*
-import android.widget.LinearLayout
-import android.widget.RelativeLayout
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.FileProvider
@@ -269,6 +273,12 @@ class RecordingActivity : AppCompatActivity() {
 
     private lateinit var countMap: HashMap<String, Int>
 
+    private lateinit var recordingLightView: ImageView
+
+    // Mediapipe
+    private lateinit var imageCapture: ImageCapture
+    private lateinit var imageCaptureBuilder: ImageCapture.Builder
+
     private var permissions: Boolean = true
 
     private var intermediateScreen: Boolean = false
@@ -336,6 +346,9 @@ class RecordingActivity : AppCompatActivity() {
                 cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview)
 
+                // Insert Mediapipe use case here
+
+
             } catch(exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
             }
@@ -354,9 +367,17 @@ class RecordingActivity : AppCompatActivity() {
             try {
                 // Bind use cases to camera
                 cameraProvider.bindToLifecycle(
-                    this, CameraSelector.DEFAULT_FRONT_CAMERA, preview, videoCapture)
+                    this, cameraSelector, preview, videoCapture)
             } catch(exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
+            }
+
+            //Bind Mediapipe
+            if (imageCaptureBuilder != null) {
+                imageCapture = imageCaptureBuilder.build()
+                val camera = cameraProvider.bindToLifecycle(
+                    this, cameraSelector, preview, imageCapture
+                )
             }
 
             // Create MediaStoreOutputOptions for our recorder
@@ -393,6 +414,12 @@ class RecordingActivity : AppCompatActivity() {
                             recordButtonDisabled = false
                             recordButton.isClickable = true
                             recordButton.isFocusable = true
+
+                            val filterMatrix = ColorMatrix()
+                            filterMatrix.setSaturation(1.0f)
+                            val filter = ColorMatrixColorFilter(filterMatrix)
+                            recordingLightView.colorFilter = filter
+
                         } else if (videoRecordEvent is VideoRecordEvent.Pause) {
                             Log.d("currRecording", "Recording Paused")
                         } else if (videoRecordEvent is VideoRecordEvent.Resume) {
@@ -414,6 +441,11 @@ class RecordingActivity : AppCompatActivity() {
                                 loadingWheel.visibility = View.INVISIBLE
 
                                 Log.d("currRecording", "Recording Finalized")
+
+                                val filterMatrix = ColorMatrix()
+                                filterMatrix.setSaturation(0.0f)
+                                val filter = ColorMatrixColorFilter(filterMatrix)
+                                recordingLightView.colorFilter = filter
                             }
                         } else {
 
@@ -506,12 +538,10 @@ class RecordingActivity : AppCompatActivity() {
 
                             currStartTime = Calendar.getInstance().time
 
-                            /**
-                             * Prevents screen rotation during the video recording
-                             */
-
-
                         }
+                        wordPager.isUserInputEnabled = false
+                        recordButton.backgroundTintList = ColorStateList.valueOf(0xFF7C0000.toInt())
+                        recordButton.setColorFilter(0x80ffffff.toInt(), PorterDuff.Mode.MULTIPLY)
                     }
 
                     /**
@@ -558,6 +588,9 @@ class RecordingActivity : AppCompatActivity() {
                                 recordButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             }
                         }
+                        wordPager.isUserInputEnabled = true
+                        recordButton.backgroundTintList = ColorStateList.valueOf(0xFFF80000.toInt())
+                        recordButton.clearColorFilter()
                     }
                 }
                 true
@@ -657,7 +690,7 @@ class RecordingActivity : AppCompatActivity() {
             ArrayList(bundle.getStringArrayList("WORDS"))
         } else {
             // Something has gone wrong if this code ever executes
-            val wordArray = resources.getStringArray(R.array.animals)
+            val wordArray = resources.getStringArray(R.array.copycat_level1)
             ArrayList(listOf(*wordArray))
         }
 
@@ -775,9 +808,21 @@ class RecordingActivity : AppCompatActivity() {
 
                     title = "Session summary"
 
+                    val filterMatrix = ColorMatrix()
+                    filterMatrix.setSaturation(0.0f)
+                    val filter = ColorMatrixColorFilter(filterMatrix)
+                    recordingLightView.colorFilter = filter
+
                 }
             }
         })
+
+        recordingLightView = findViewById<ImageView>(R.id.videoRecordingLight3)
+
+        val filterMatrix = ColorMatrix()
+        filterMatrix.setSaturation(0.0f)
+        val filter = ColorMatrixColorFilter(filterMatrix)
+        recordingLightView.colorFilter = filter
 
         initializeCamera()
     }
@@ -904,43 +949,48 @@ class RecordingActivity : AppCompatActivity() {
         // resort sampleVideos around files
 
 //        var sampleVideoFile = sampleVideoRecording.file
-        val thumbnailValues = ContentValues().apply {
-            put(
-                MediaStore.MediaColumns.DISPLAY_NAME,
-                "$metadataFilename-timestamps.jpg"
-            );       //file name
-            put(
-                MediaStore.MediaColumns.MIME_TYPE,
-                "image/jpeg"
-            );        //file extension, will automatically add to file
-            put(
-                MediaStore.MediaColumns.RELATIVE_PATH,
-                Environment.DIRECTORY_PICTURES
-            );     //end "/" is not mandatory
-        }
-        var uri = contentResolver.insert(
-            MediaStore.Images.Media.getContentUri("external"),
-            thumbnailValues
-        )
-        var outputThumbnail = uri?.let { contentResolver.openOutputStream(it) }
-        sampleVideos[sampleVideos.keys.random()]?.first()?.file?.let {
-            ThumbnailUtils.createVideoThumbnail(
-                it,
-                Size(640,480),
-                null
-            )?.apply {
-                compress(Bitmap.CompressFormat.JPEG, 90, outputThumbnail)
-                recycle()
+        if (sampleVideos.size > 0) {
+            val thumbnailValues = ContentValues().apply {
+                put(
+                    MediaStore.MediaColumns.DISPLAY_NAME,
+                    "$metadataFilename-timestamps.jpg"
+                );       //file name
+                put(
+                    MediaStore.MediaColumns.MIME_TYPE,
+                    "image/jpeg"
+                );        //file extension, will automatically add to file
+                put(
+                    MediaStore.MediaColumns.RELATIVE_PATH,
+                    Environment.DIRECTORY_PICTURES
+                );     //end "/" is not mandatory
             }
+            var uri = contentResolver.insert(
+                MediaStore.Images.Media.getContentUri("external"),
+                thumbnailValues
+            )
+            var outputThumbnail = uri?.let { contentResolver.openOutputStream(it) }
+            sampleVideos[sampleVideos.keys.random()]?.first()?.file?.let {
+                ThumbnailUtils.createVideoThumbnail(
+                    it,
+                    Size(640, 480),
+                    null
+                )?.apply {
+                    compress(Bitmap.CompressFormat.JPEG, 90, outputThumbnail)
+                    recycle()
+                }
+            }
+            outputThumbnail?.flush()
+            outputThumbnail?.close()
+
+            var imageFd = uri?.let { contentResolver.openFileDescriptor(it, "rw") }
+
+            var exif = imageFd?.let { ExifInterface(it.fileDescriptor) }
+            exif?.setAttribute(
+                TAG_IMAGE_DESCRIPTION,
+                convertRecordingListToString(sessionVideoFiles)
+            )
+            exif?.saveAttributes()
         }
-        outputThumbnail?.flush()
-        outputThumbnail?.close()
-
-        var imageFd = uri?.let { contentResolver.openFileDescriptor(it, "rw") }
-
-        var exif = imageFd?.let { ExifInterface( it.fileDescriptor ) }
-        exif?.setAttribute(TAG_IMAGE_DESCRIPTION, convertRecordingListToString(sessionVideoFiles))
-        exif?.saveAttributes()
 
         val text = "Video successfully saved"
         val toast = Toast.makeText(this, text, Toast.LENGTH_SHORT)

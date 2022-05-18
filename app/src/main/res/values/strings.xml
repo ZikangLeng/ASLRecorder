@@ -1,263 +1,76 @@
 <resources>
     <string name="app_name">ASLRecorder</string>
     <!-- List of words derived from MacArthur-Bates ASL -->
-    <string-array name="animals">
-        <item>bee</item>
-        <item>bird</item>
-        <item>bug</item>
-        <item>cat</item>
-        <item>chicken</item>
-        <item>cow</item>
-        <item>dog</item>
-        <item>donkey</item>
-        <item>duck</item>
-        <item>elephant</item>
-        <item>fish</item>
-        <item>frog</item>
-        <item>giraffe</item>
-        <item>goose</item>
-        <item>hen</item>
-        <item>horse</item>
-        <item>kitty</item>
-        <item>lion</item>
-        <item>mouse</item>
-        <item>pig</item>
-        <item>wolf</item>
-        <item>zebra</item>
+    <string-array name="copycat_level1">
+        <item>CAT SEE RADIO</item>
+        <item>DOG SEE LAMP</item>
+        <item>DOG HEAR CAT</item>
+        <item>CAT DRY SCISSORS</item>
+        <item>DOG DRY RADIO</item>
+        <item>CAT HEAR LAMP</item>
+        <item>CAT DRY CAT</item>
+        <item>DOG TALK DOG</item>
     </string-array>
-    <string-array name="food">
-        <item>apple</item>
-        <item>candy</item>
-        <item>carrot</item>
-        <item>cereal</item>
-        <item>chicken</item>
-        <item>drink</item>
-        <item>fish</item>
-        <item>food</item>
-        <item>french fries</item>
-        <item>gum</item>
-        <item>ice</item>
-        <item>ice cream</item>
-        <item>milk</item>
-        <item>nuts</item>
-        <item>orange</item>
-        <item>pickle</item>
-        <item>pizza</item>
-        <item>sauce</item>
-        <item>soup</item>
-        <item>water</item>
+    <string-array name="copycat_level2">
+        <item>BLUE CAT SEE SCISSORS</item>
+        <item>DOG HEAR BLACK CAT</item>
+        <item>WHITE CAT HEAR BIRD</item>
+        <item>BIRD SEE WHITE LAMP</item>
+        <item>DOG SEE BLACK LAMP</item>
+        <item>RED DOG SEE BLUE LAMP</item>
+        <item>BLACK BIRD HEAR WHITE SCISSORS</item>
+        <item>BLUE CAT SEE RED BIRD</item>
     </string-array>
-    <string-array name="household">
-        <item>camera</item>
-        <item>garbage</item>
-        <item>glass</item>
-        <item>keys</item>
-        <item>lamp</item>
-        <item>light</item>
-        <item>money</item>
-        <item>napkin</item>
-        <item>penny</item>
-        <item>purse</item>
-        <item>radio</item>
-        <item>scissors</item>
-        <item>telephone</item>
-        <item>tissue</item>
-        <item>toothbrush</item>
-        <item>trash</item>
-        <item>vacuum</item>
-        <item>pen</item>
-        <item>puzzle</item>
-        <item>toy</item>
-        <item>hat</item>
-        <item>shirt</item>
-        <item>underwear</item>
-        <item>zipper</item>
-        <item>bathroom</item>
-        <item>bed</item>
-        <item>closet</item>
-        <item>door</item>
-        <item>drawer</item>
-        <item>dryer</item>
-        <item>potty</item>
-        <item>refrigerator</item>
-        <item>shower</item>
-        <item>stairs</item>
-        <item>TV</item>
+    <string-array name="copycat_level3">
+        <item>HORSE DRY BIRD</item>
+        <item>PIG SEE TV</item>
+        <item>DOG TALK HORSE</item>
+        <item>LION TALK RED CAT</item>
+        <item>HUNGRY HORSE HEAR BIRD</item>
+        <item>BIRD TALK TELEPHONE</item>
+        <item>WHITE PIG SEE HUNGRY LION</item>
+        <item>BLUE LION DRY RED PIG</item>
     </string-array>
-    <string-array name="people">
-        <item>aunt</item>
-        <item>boy</item>
-        <item>child</item>
-        <item>clown</item>
-        <item>cowboy</item>
-        <item>dad</item>
-        <item>fireman</item>
-        <item>girl</item>
-        <item>grandma</item>
-        <item>grandpa</item>
-        <item>lady</item>
-        <item>man</item>
-        <item>mom</item>
-        <item>person</item>
-        <item>police</item>
-        <item>uncle</item>
-    </string-array>
-    <string-array name="body">
-        <item>buttocks</item>
-        <item>cheek</item>
-        <item>chin</item>
-        <item>ear</item>
-        <item>eye</item>
-        <item>face</item>
-        <item>hair</item>
-        <item>head</item>
-        <item>knee</item>
-        <item>lip</item>
-        <item>mouth</item>
-        <item>nose</item>
-        <item>penis</item>
-        <item>teeth</item>
-        <item>tongue</item>
-    </string-array>
-    <string-array name="outdoors">
-        <item>car</item>
-        <item>flag</item>
-        <item>grass</item>
-        <item>moon</item>
-        <item>rain</item>
-        <item>snow</item>
-        <item>sun</item>
-        <item>tree</item>
-        <item>plane</item>
-        <item>water</item>
-        <item>farm</item>
-        <item>home</item>
-        <item>outside</item>
-        <item>party</item>
-        <item>store</item>
-    </string-array>
-    <string-array name="routines">
-        <item>bath</item>
-        <item>call (on the phone)</item>
-        <item>go potty</item>
-        <item>nap</item>
-        <item>snack</item>
-        <item>night-night</item>
-    </string-array>
-    <string-array name="actions">
-        <item>blow</item>
-        <item>cry</item>
-        <item>cut</item>
-        <item>drink</item>
-        <item>dry</item>
-        <item>eat</item>
-        <item>find</item>
-        <item>finish</item>
-        <item>give</item>
-        <item>go</item>
-        <item>hate</item>
-        <item>hear</item>
-        <item>jump</item>
-        <item>kick</item>
-        <item>like</item>
-        <item>listen</item>
-        <item>look</item>
-        <item>pick</item>
-        <item>play</item>
-        <item>pretend</item>
-        <item>read</item>
-        <item>say</item>
-        <item>see</item>
-        <item>sleep</item>
-        <item>stay</item>
-        <item>talk</item>
-        <item>taste</item>
-        <item>think</item>
-        <item>touch</item>
-        <item>wake</item>
-        <item>watch</item>
-        <item>wish</item>
-    </string-array>
-    <string-array name="adjectives">
-        <item>asleep</item>
-        <item>aware</item>
-        <item>bad</item>
-        <item>better</item>
-        <item>black</item>
-        <item>blue</item>
-        <item>brown</item>
-        <item>cute</item>
-        <item>dirty</item>
-        <item>dry</item>
-        <item>empty</item>
-        <item>fine</item>
-        <item>first</item>
-        <item>good</item>
-        <item>green</item>
-        <item>high</item>
-        <item>hot</item>
-        <item>hungry</item>
-        <item>loud</item>
-        <item>mad</item>
-        <item>naughty</item>
-        <item>noisy</item>
-        <item>old</item>
-        <item>orange</item>
-        <item>pretty</item>
-        <item>red</item>
-        <item>sad</item>
-        <item>sleepy</item>
-        <item>sticky</item>
-        <item>stuck</item>
-        <item>thirsty</item>
-        <item>wet</item>
-        <item>white</item>
-        <item>yellow</item>
-        <item>yucky</item>
-    </string-array>
-    <string-array name="helper_words">
-        <item>later</item>
-        <item>tomorrow</item>
-        <item>yesterday</item>
-        <item>where</item>
-        <item>who</item>
-        <item>why</item>
-        <item>beside</item>
-        <item>down</item>
-        <item>for</item>
-        <item>off</item>
-        <item>out</item>
-        <item>there</item>
-        <item>up</item>
-        <item>all</item>
-        <item>another</item>
-        <item>not</item>
-        <item>any</item>
-        <item>same</item>
-        <item>will</item>
-        <item>because</item>
-        <item>if</item>
-        <item>yes</item>
-        <item>no</item>
-        <item>please</item>
-        <item>thank you</item>
-        <item>hello</item>
-        <item>bye</item>
-        <item>shhh</item>
-        <item>uh-oh</item>
-        <item>ouch / owie</item>
-    </string-array>
-    <string-array name="pronouns">
-        <!-- Clarify: are he/him/she/her/they/them/you
-             all the same sign? -->
-        <item>he</item>
-        <item>mine / my</item>
-        <item>his</item>
-        <item>we / us</item>
-        <item>this</item>
-        <item>those</item>
-        <item>that</item>
-        <item>yourself</item>
+    <string-array name="copycat_other_levels">
+        <item>PIG HEAR DOG</item>
+        <item>CAT SEE HORSE</item>
+        <item>LION HEAR LAMP</item>
+        <item>BIRD HEAR PIG</item>
+        <item>LION SEE LAMP</item>
+        <item>HORSE HEAR DOG</item>
+        <item>CAT DRY BLACK LAMP</item>
+        <item>WHITE HORSE HEAR TV</item>
+        <item>DOG SEE BLUE BIRD</item>
+        <item>HORSE TALK WHITE DOG</item>
+        <item>DOG TALK BLACK LION</item>
+        <item>DOG SEE RED TELEPHONE</item>
+        <item>BLACK HORSE SEE HORSE</item>
+        <item>PIG DRY BLACK DOG</item>
+        <item>WHITE LION HEAR HORSE</item>
+        <item>PIG DRY RED DOG</item>
+        <item>HORSE SEE WHITE TELEPHONE</item>
+        <item>BLUE HORSE HEAR LAMP</item>
+        <item>WHITE DOG TALK DOG</item>
+        <item>LION HEAR BLACK TV</item>
+        <item>BLUE BIRD TALK BLACK HORSE</item>
+        <item>RED PIG TALK RED DOG</item>
+        <item>RED PIG SEE RED CAT</item>
+        <item>RED LION HEAR HUNGRY HORSE</item>
+        <item>WHITE CAT HEAR HUNGRY BIRD</item>
+        <item>BLACK BIRD SEE BLACK LAMP</item>
+        <item>HUNGRY CAT TALK BLUE DOG</item>
+        <item>WHITE LION DRY RED BIRD</item>
+        <item>HUNGRY CAT HEAR RED DOG</item>
+        <item>BLACK CAT SEE BLACK TELEPHONE</item>
+        <item>BLACK HORSE HEAR BLUE SCISSORS</item>
+        <item>WHITE HORSE HEAR RED RADIO</item>
+        <item>BLACK BIRD SEE HUNGRY PIG</item>
+        <item>WHITE HORSE HEAR BLACK SCISSORS</item>
+        <item>HUNGRY CAT HEAR BLACK BIRD</item>
+        <item>BLUE HORSE DRY HUNGRY PIG</item>
+        <item>WHITE BIRD DRY RED RADIO</item>
+        <item>HUNGRY PIG TALK HUNGRY BIRD</item>
+        <item>BLACK HORSE DRY WHITE TELEPHONE</item>
     </string-array>
     <string name="change_UID"><font color='#0000FF'>(change)</font></string>
 </resources>

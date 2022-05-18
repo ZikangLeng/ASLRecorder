@@ -77,14 +77,15 @@ class RecordingListFragment(wordList: ArrayList<String>,
     }
 
     fun determineExitButtonAvailability() {
-        for (entry in files) {
-            if (entry.value.size > 0) {
-                this.saveButton.isEnabled = true
-                return
-            }
-        }
-
-        this.saveButton.isEnabled = false
+        this.saveButton.isEnabled = true
+//        for (entry in files) {
+//            if (entry.value.size > 0) {
+//                this.saveButton.isEnabled = true
+//                return
+//            }
+//        }
+//
+//        this.saveButton.isEnabled = false
     }
 
 
