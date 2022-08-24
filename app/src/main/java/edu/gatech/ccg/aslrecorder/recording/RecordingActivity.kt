@@ -52,8 +52,10 @@ import android.view.*
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
+import androidx.camera.core.impl.CaptureProcessor
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
@@ -79,6 +81,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
+import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import com.google.common.base.Joiner
 import edu.gatech.ccg.aslrecorder.convertRecordingListToString
@@ -335,6 +338,8 @@ class RecordingActivity : AppCompatActivity() {
                     it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
                 }
 
+            binding.viewFinder.implementationMode = PreviewView.ImplementationMode.COMPATIBLE;
+
             // Select front camera as a default
             val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
 
@@ -347,7 +352,6 @@ class RecordingActivity : AppCompatActivity() {
                     this, cameraSelector, preview)
 
                 // Insert Mediapipe use case here
-
 
             } catch(exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
@@ -373,8 +377,9 @@ class RecordingActivity : AppCompatActivity() {
             }
 
             //Bind Mediapipe
-            if (imageCaptureBuilder != null) {
-                imageCapture = imageCaptureBuilder.build()
+            if (!::imageCaptureBuilder.isInitialized) {
+                imageCaptureBuilder = ImageCapture.Builder();
+                imageCapture = imageCaptureBuilder.build();
                 val camera = cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, imageCapture
                 )
@@ -509,7 +514,6 @@ class RecordingActivity : AppCompatActivity() {
          * User has given permission to use the camera
          */
         else {
-            startCamera()
 
             val buttonLock = ReentrantLock()
 
