@@ -24,6 +24,8 @@
  */
 package edu.gatech.ccg.aslrecorder.recording
 
+//import kotlinx.android.synthetic.main.activity_record.*
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ContentValues
@@ -34,9 +36,6 @@ import android.graphics.Bitmap
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.PorterDuff
-import android.graphics.drawable.Drawable
-import android.graphics.drawable.LayerDrawable
-import android.graphics.drawable.GradientDrawable
 import android.hardware.camera2.*
 import android.media.ExifInterface
 import android.media.ExifInterface.TAG_IMAGE_DESCRIPTION
@@ -44,53 +43,45 @@ import android.media.ThumbnailUtils
 import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
-import android.text.Layout
-import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
 import android.util.Size
 import android.view.*
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
-import androidx.camera.core.impl.CaptureProcessor
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.video.*
+import androidx.camera.view.PreviewView
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.mediapipe.components.FrameProcessor
+import com.google.mediapipe.framework.AndroidAssetUtil
+import com.google.mediapipe.glutil.EglManager
 import edu.gatech.ccg.aslrecorder.R
+import edu.gatech.ccg.aslrecorder.convertRecordingListToString
+import edu.gatech.ccg.aslrecorder.databinding.ActivityRecordBinding
+import edu.gatech.ccg.aslrecorder.padZeroes
 import edu.gatech.ccg.aslrecorder.randomChoice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.BufferedInputStream
-
 import java.io.File
 import java.io.FileInputStream
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantLock
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 import kotlin.concurrent.withLock
-
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.video.*
-import androidx.camera.view.PreviewView
-import androidx.core.content.ContextCompat
-import com.google.common.base.Joiner
-import edu.gatech.ccg.aslrecorder.convertRecordingListToString
-import edu.gatech.ccg.aslrecorder.databinding.ActivityRecordBinding
-import edu.gatech.ccg.aslrecorder.padZeroes
-//import kotlinx.android.synthetic.main.activity_record.*
-import java.util.concurrent.Executors
-
-import java.util.Calendar
 
 const val WORDS_PER_SESSION = 5
 
@@ -108,6 +99,10 @@ data class RecordingEntryVideo(val file: File, val videoStart: Date, val signSta
  * @version 1.1.0
  */
 class RecordingActivity : AppCompatActivity() {
+
+    private val BINARY_GRAPH_NAME = "face_detection_mobile_gpu.binarypb"
+    private val INPUT_VIDEO_STREAM_NAME = "input_video"
+    private val OUTPUT_VIDEO_STREAM_NAME = "output_video"
 
     private lateinit var context: Context
 
@@ -383,6 +378,11 @@ class RecordingActivity : AppCompatActivity() {
                 val camera = cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, imageCapture
                 )
+                AndroidAssetUtil.initializeNativeAssetManager(this)
+                var eglManager = EglManager(null)
+                var processor = FrameProcessor(this, eglManager.nativeContext,
+                    BINARY_GRAPH_NAME, INPUT_VIDEO_STREAM_NAME, OUTPUT_VIDEO_STREAM_NAME)
+                processor.videoSurfaceOutput.setFlipY(true);
             }
 
             // Create MediaStoreOutputOptions for our recorder
