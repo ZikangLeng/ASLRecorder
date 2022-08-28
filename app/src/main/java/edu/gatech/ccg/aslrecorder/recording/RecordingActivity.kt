@@ -180,51 +180,10 @@ class RecordingActivity : AppCompatActivity() {
     private lateinit var cameraHandler: Handler
 
 
-//    /**
-//     * The current recording session, if we are currently capturing video.
-//     */
-//    private lateinit var session: CameraCaptureSession
-
-
-    /**
-     * Deprecated: CameraX now used. The Android service responsible for providing information about the phone's camera setup.
-     */
-//    private val cameraManager: CameraManager by lazy {
-//        val context = this.applicationContext
-//        context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-//    }
-
-
     /**
      * A [Surface] (canvas) which is used to show the user a real-time preview of their video feed.
      */
     private var previewSurface: Surface? = null
-
-
-    /**
-     * Deprecated: CameraX now used. The [CaptureRequest] needed to send video data to [previewSurface].
-     */
-//    private lateinit var previewRequest: CaptureRequest
-
-
-    /**
-     * Deprecated: CameraX now used. The [CaptureRequest] needed to send video data to a recording file.
-     */
-//    private lateinit var recordRequest: CaptureRequest
-
-
-    /**
-     * Deprecated: CameraX now used.
-     * The [File] where the next recording will be stored. The filename contains the word being
-     * signed, as well as the date and time of the recording.
-     */
-//    private lateinit var outputFile: File
-
-
-    /**
-     * Deprecated: CameraX now used. The media recording service.
-     */
-//    private lateinit var recorder: MediaRecorder
 
 
     /**
@@ -663,55 +622,6 @@ class RecordingActivity : AppCompatActivity() {
         }
     }
 
-    @SuppressLint("MissingPermission")
-    private suspend fun openCamera(
-        manager: CameraManager,
-        cameraId: String,
-        handler: Handler? = null
-    ): CameraDevice = suspendCancellableCoroutine { cont ->
-        manager.openCamera(cameraId, object : CameraDevice.StateCallback() {
-            override fun onOpened(device: CameraDevice) = cont.resume(device)
-
-            override fun onDisconnected(device: CameraDevice) {
-                Log.w(TAG, "Camera $cameraId has been disconnected")
-                this@RecordingActivity.finish()
-            }
-
-            override fun onError(device: CameraDevice, error: Int) {
-                val msg = when(error) {
-                    ERROR_CAMERA_DEVICE -> "Fatal (device)"
-                    ERROR_CAMERA_DISABLED -> "Device policy"
-                    ERROR_CAMERA_IN_USE -> "Camera in use"
-                    ERROR_CAMERA_SERVICE -> "Fatal (service)"
-                    ERROR_MAX_CAMERAS_IN_USE -> "Maximum cameras in use"
-                    else -> "Unknown"
-                }
-                val exc = RuntimeException("Camera $cameraId error: ($error) $msg")
-                Log.e(TAG, exc.message, exc)
-                if (cont.isActive) cont.resumeWithException(exc)
-            }
-        }, handler)
-    }
-
-//    private suspend fun createCaptureSession(
-//        device: CameraDevice,
-//        targets: List<Surface>,
-//        handler: Handler? = null
-//    ): CameraCaptureSession = suspendCoroutine { cont ->
-//
-//        // Creates a capture session using the predefined targets, and defines a session state
-//        // callback which resumes the coroutine once the session is configured
-//        device.createCaptureSession(targets, object: CameraCaptureSession.StateCallback() {
-//            override fun onConfigured(session: CameraCaptureSession) = cont.resume(session)
-//
-//            override fun onConfigureFailed(session: CameraCaptureSession) {
-//                val exc = RuntimeException("Camera ${device.id} session configuration failed")
-//                Log.e(TAG, exc.message, exc)
-//                // cont.resumeWithException(exc)
-//            }
-//        }, handler)
-//    }
-
     override fun onStop() {
         super.onStop()
         try {
@@ -740,11 +650,7 @@ class RecordingActivity : AppCompatActivity() {
         val view = binding.root
         setContentView(view)
 
-//        setContentView(R.layout.activity_record)
-
         context = this
-
-//        outputFile = createFile(this)
 
         // Set up view pager
         wordPager = findViewById(R.id.wordPager)
@@ -809,7 +715,6 @@ class RecordingActivity : AppCompatActivity() {
                         countMap[currentWord] = countMap.getOrDefault(currentWord, 0)
                     })
 
-//                    this@RecordingActivity.outputFile = createFile(this@RecordingActivity)
                     title = "${position + 1} of ${wordList.size}"
 
                     if (recordButtonDisabled) {
@@ -903,35 +808,6 @@ class RecordingActivity : AppCompatActivity() {
         initializeCamera()
     }
 
-//    private fun setupCameraCallback() {
-//        viewFinder.holder.addCallback(object: SurfaceHolder.Callback {
-//            override fun surfaceCreated(holder: SurfaceHolder) {
-//                Log.d(TAG,"Initializing surface!")
-//                previewSurface = holder.surface
-//
-//                holder.setFixedSize(1920, 1080)
-//                initializeCamera()
-//            }
-//
-//            override fun surfaceChanged(
-//                holder: SurfaceHolder,
-//                format: Int,
-//                width: Int,
-//                height: Int
-//            ) {
-//                Log.d(TAG, "Camera preview surface changed!")
-//                // PROBABLY NOT THE BEST IDEA!
-////                previewSurface = holder.surface
-////                initializeCamera()
-//            }
-//
-//            override fun surfaceDestroyed(holder: SurfaceHolder) {
-//                Log.d(TAG, "Camera preview surface destroyed!")
-//                previewSurface = null
-//            }
-//        })
-//    }
-
     private var initializedAlready = false
 
     override fun onResume() {
@@ -939,10 +815,9 @@ class RecordingActivity : AppCompatActivity() {
 
         cameraThread = generateCameraThread()
         cameraHandler = Handler(cameraThread.looper)
-//
+
         if (!initializedAlready) {
             initializeCamera()
-//            setupCameraCallback()
             initializedAlready = true
         }
     }
@@ -957,9 +832,7 @@ class RecordingActivity : AppCompatActivity() {
 
     fun concludeRecordingSession() {
         val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
-//        var recordingIndex = prefs.getInt("RECORDING_INDEX", 0)
         with (prefs.edit()) {
-//            putInt("RECORDING_INDEX", recordingIndex)
             for (entry in sessionVideoFiles) {
                 val key = "RECORDING_COUNT_${entry.key}"
                 val recordingCount = prefs.getInt(key, 0);
@@ -967,12 +840,6 @@ class RecordingActivity : AppCompatActivity() {
             }
             commit()
         }
-//        for (word in sessionVideoFiles) {
-//            for (entry in word.value) {
-//                copyFileToDownloads(this.applicationContext, entry.file)
-//                createTimestampFile(word.key, entry)
-//            }
-//        }
         createTimestampFileAllinOne(sessionVideoFiles)
         finish()
     }
@@ -985,8 +852,6 @@ class RecordingActivity : AppCompatActivity() {
      */
     private val DOWNLOAD_DIR = Environment
         .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-
-    // val finalUri : Uri? = copyFileToDownloads(context, downloadedFile)
 
     fun copyFileToDownloads(context: Context, videoFile: File): Uri? {
         val resolver = context.contentResolver
@@ -1023,8 +888,6 @@ class RecordingActivity : AppCompatActivity() {
 
     fun createTimestampFileAllinOne(sampleVideos: HashMap<String, ArrayList<RecordingEntryVideo>>) {
         // resort sampleVideos around files
-
-//        var sampleVideoFile = sampleVideoRecording.file
         if (sampleVideos.size > 0) {
             val thumbnailValues = ContentValues().apply {
                 put(
@@ -1071,35 +934,5 @@ class RecordingActivity : AppCompatActivity() {
         val text = "Video successfully saved"
         val toast = Toast.makeText(this, text, Toast.LENGTH_SHORT)
         toast.show()
-    }
-    /**
-     * End borrowed code from Rubén Viguera.
-     */
-
-    fun createTimestampFile(videoWord: String, sampleVideoRecording: RecordingEntryVideo) {
-        var sampleVideoFile = sampleVideoRecording.file
-        val thumbnailValues = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, sampleVideoFile.name.substring(0,sampleVideoFile.name.length - sampleVideoFile.name.lastIndexOf("."))+"-"+videoWord+"-"+"-timestamps.jpg");       //file name
-            put(
-                MediaStore.MediaColumns.MIME_TYPE,
-                "image/jpeg"
-            );        //file extension, will automatically add to file
-            put(
-                MediaStore.MediaColumns.RELATIVE_PATH,
-                Environment.DIRECTORY_PICTURES
-            );     //end "/" is not mandatory
-        }
-        var uri = contentResolver.insert(
-            MediaStore.Images.Media.getContentUri("external"),
-            thumbnailValues
-        )
-        var outputThumbnail = uri?.let { contentResolver.openOutputStream(it) }
-        ThumbnailUtils.createVideoThumbnail(
-            sampleVideoFile.absolutePath,
-            MediaStore.Images.Thumbnails.MINI_KIND
-        )?.apply {
-            compress(Bitmap.CompressFormat.JPEG, 50, outputThumbnail)
-            recycle()
-        }
     }
 }
