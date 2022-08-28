@@ -102,7 +102,7 @@ data class RecordingEntryVideo(val file: File, val videoStart: Date, val signSta
  */
 class RecordingActivity : AppCompatActivity() {
 
-    private val BINARY_GRAPH_NAME = "holistic_tracking_gpu.binarypb"
+    private val BINARY_GRAPH_NAME = "face_detection_mobile_gpu.binarypb"
     private val INPUT_VIDEO_STREAM_NAME = "input_video"
     private val OUTPUT_VIDEO_STREAM_NAME = "output_video"
 
@@ -346,14 +346,6 @@ class RecordingActivity : AppCompatActivity() {
     }
 
     private fun startCamera() {
-        cameraHelper = CameraXPreviewHelper()
-        cameraHelper.setOnCameraStartedListener { surfaceTexture: SurfaceTexture? ->
-            if (surfaceTexture != null) {
-                previewFrameTexture = surfaceTexture
-            }
-            previewDisplayView.visibility = View.VISIBLE
-        }
-
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
         cameraProviderFuture.addListener(Runnable {
@@ -380,8 +372,6 @@ class RecordingActivity : AppCompatActivity() {
                 cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview)
 
-                // Insert Mediapipe use case here
-
             } catch(exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
             }
@@ -403,15 +393,6 @@ class RecordingActivity : AppCompatActivity() {
                     this, cameraSelector, preview, videoCapture)
             } catch(exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
-            }
-
-            //Bind Mediapipe
-            if (!::imageCaptureBuilder.isInitialized) {
-                imageCaptureBuilder = ImageCapture.Builder()
-                imageCapture = imageCaptureBuilder.build()
-                val camera = cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, imageCapture
-                )
             }
 
             // Create MediaStoreOutputOptions for our recorder
@@ -509,6 +490,14 @@ class RecordingActivity : AppCompatActivity() {
             countdownTimer.start()
 
         }, ContextCompat.getMainExecutor(this))
+
+        cameraHelper = CameraXPreviewHelper()
+        cameraHelper.setOnCameraStartedListener { surfaceTexture: SurfaceTexture? ->
+            if (surfaceTexture != null) {
+                previewFrameTexture = surfaceTexture
+            }
+            previewDisplayView.visibility = View.VISIBLE
+        }
     }
 
     private fun setupPreviewDisplayView() {
@@ -581,6 +570,10 @@ class RecordingActivity : AppCompatActivity() {
          * User has given permission to use the camera
          */
         else {
+            converter = ExternalTextureConverter(eglManager.context);
+            converter.setFlipY(true);
+            converter.setConsumer(processor);
+
             startCamera()
 
             val buttonLock = ReentrantLock()

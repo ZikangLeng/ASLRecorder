@@ -19,7 +19,8 @@
         <androidx.camera.view.PreviewView
             android:id="@+id/viewFinder"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:visibility="visible">
 
         </androidx.camera.view.PreviewView>
 
@@ -40,11 +41,12 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="@id/aspectRatioConstraint"
         app:layout_constraintEnd_toEndOf="@id/aspectRatioConstraint"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="@id/aspectRatioConstraint"
-        app:layout_constraintTop_toTopOf="@id/aspectRatioConstraint" >
+        app:layout_constraintTop_toTopOf="@id/aspectRatioConstraint">
 
     </androidx.viewpager2.widget.ViewPager2>
 
