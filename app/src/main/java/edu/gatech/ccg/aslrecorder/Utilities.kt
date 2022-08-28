@@ -248,8 +248,7 @@ fun convertRecordingListToString(sessionVideoFiles: HashMap<String, ArrayList<Re
     for ((key, value) in sessionVideoFiles) {
         conversion.append("\'$key\': [")
         for (entry in value) {
-            val convertedEntry = convertRecordingEntryVideoToString(entry)
-            conversion.append("${convertedEntry}, ")
+            conversion.append("${entry}, ")
         }
         conversion.delete(conversion.length - 2, conversion.length)
         conversion.append("], ")

@@ -694,7 +694,7 @@ class RecordingActivity : AppCompatActivity() {
             ArrayList(bundle.getStringArrayList("WORDS"))
         } else {
             // Something has gone wrong if this code ever executes
-            val wordArray = resources.getStringArray(R.array.copycat_level1)
+            val wordArray = resources.getStringArray(R.array.animals)
             ArrayList(listOf(*wordArray))
         }
 
