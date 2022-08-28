@@ -373,12 +373,12 @@ class RecordingActivity : AppCompatActivity() {
             }
 
             //Bind Mediapipe
-            if (imageCaptureBuilder != null) {
-                imageCapture = imageCaptureBuilder.build()
-                val camera = cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, imageCapture
-                )
-            }
+//            if (::imageCaptureBuilder.isInitialized) {
+//                imageCapture = imageCaptureBuilder.build()
+//                val camera = cameraProvider.bindToLifecycle(
+//                    this, cameraSelector, preview, imageCapture
+//                )
+//            }
 
             // Create MediaStoreOutputOptions for our recorder
 
