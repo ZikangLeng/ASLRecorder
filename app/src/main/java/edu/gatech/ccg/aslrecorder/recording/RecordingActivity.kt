@@ -32,11 +32,10 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
-import android.graphics.Bitmap
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
-import android.graphics.PorterDuff
-import android.hardware.camera2.*
+import android.graphics.*
+import android.hardware.camera2.CameraDevice
+import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CaptureRequest
 import android.media.ExifInterface
 import android.media.ExifInterface.TAG_IMAGE_DESCRIPTION
 import android.media.ThumbnailUtils
@@ -61,6 +60,8 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.mediapipe.components.CameraXPreviewHelper
+import com.google.mediapipe.components.ExternalTextureConverter
 import com.google.mediapipe.components.FrameProcessor
 import com.google.mediapipe.framework.AndroidAssetUtil
 import com.google.mediapipe.glutil.EglManager
@@ -83,6 +84,7 @@ import kotlin.concurrent.withLock
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+
 const val WORDS_PER_SESSION = 5
 
 data class RecordingEntryVideo(val file: File, val videoStart: Date, val signStart: Date, val signEnd: Date) {
@@ -100,7 +102,7 @@ data class RecordingEntryVideo(val file: File, val videoStart: Date, val signSta
  */
 class RecordingActivity : AppCompatActivity() {
 
-    private val BINARY_GRAPH_NAME = "face_detection_mobile_gpu.binarypb"
+    private val BINARY_GRAPH_NAME = "holistic_tracking_gpu.binarypb"
     private val INPUT_VIDEO_STREAM_NAME = "input_video"
     private val OUTPUT_VIDEO_STREAM_NAME = "output_video"
 
@@ -281,6 +283,26 @@ class RecordingActivity : AppCompatActivity() {
 
     private var intermediateScreen: Boolean = false
 
+    // {@link SurfaceTexture} where the camera-preview frames can be accessed.
+    private lateinit var previewFrameTexture: SurfaceTexture
+
+    // {@link SurfaceView} that displays the camera-preview frames processed by a MediaPipe graph.
+    private lateinit var previewDisplayView: SurfaceView
+
+    // Creates and manages an {@link EGLContext}.
+    private lateinit var eglManager: EglManager
+
+    // Sends camera-preview frames into a MediaPipe graph for processing, and displays the processed
+    // frames onto a {@link Surface}.
+    private lateinit var processor: FrameProcessor
+
+    // Converts the GL_TEXTURE_EXTERNAL_OES texture from Android camera into a regular texture to be
+    // consumed by {@link FrameProcessor} and the underlying MediaPipe graph.
+    private lateinit var converter: ExternalTextureConverter
+
+    // Handles camera access via the {@link CameraX} Jetpack support library.
+    private lateinit var cameraHelper: CameraXPreviewHelper
+
     val permission =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { map ->
             //handle individual results if desired
@@ -316,10 +338,22 @@ class RecordingActivity : AppCompatActivity() {
          * The minimum recording time is one second.
          */
         private const val MIN_REQUIRED_RECORDING_TIME_MILLIS: Long = 1000L
+    }
 
+    init {
+        System.loadLibrary("mediapipe_jni");
+        System.loadLibrary("opencv_java3");
     }
 
     private fun startCamera() {
+        cameraHelper = CameraXPreviewHelper()
+        cameraHelper.setOnCameraStartedListener { surfaceTexture: SurfaceTexture? ->
+            if (surfaceTexture != null) {
+                previewFrameTexture = surfaceTexture
+            }
+            previewDisplayView.visibility = View.VISIBLE
+        }
+
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
         cameraProviderFuture.addListener(Runnable {
@@ -373,16 +407,11 @@ class RecordingActivity : AppCompatActivity() {
 
             //Bind Mediapipe
             if (!::imageCaptureBuilder.isInitialized) {
-                imageCaptureBuilder = ImageCapture.Builder();
-                imageCapture = imageCaptureBuilder.build();
+                imageCaptureBuilder = ImageCapture.Builder()
+                imageCapture = imageCaptureBuilder.build()
                 val camera = cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, imageCapture
                 )
-                AndroidAssetUtil.initializeNativeAssetManager(this)
-                var eglManager = EglManager(null)
-                var processor = FrameProcessor(this, eglManager.nativeContext,
-                    BINARY_GRAPH_NAME, INPUT_VIDEO_STREAM_NAME, OUTPUT_VIDEO_STREAM_NAME)
-                processor.videoSurfaceOutput.setFlipY(true);
             }
 
             // Create MediaStoreOutputOptions for our recorder
@@ -480,8 +509,46 @@ class RecordingActivity : AppCompatActivity() {
             countdownTimer.start()
 
         }, ContextCompat.getMainExecutor(this))
-
     }
+
+    private fun setupPreviewDisplayView() {
+        previewDisplayView.visibility = View.GONE
+        val viewGroup = findViewById<ViewGroup>(R.id.aspectRatioConstraint)
+        viewGroup.addView(previewDisplayView)
+        previewDisplayView
+            .holder
+            .addCallback(
+                object : SurfaceHolder.Callback {
+                    override fun surfaceCreated(holder: SurfaceHolder) {
+                        processor.videoSurfaceOutput.setSurface(holder.surface)
+                    }
+
+                    override fun surfaceChanged(
+                        holder: SurfaceHolder,
+                        format: Int,
+                        width: Int,
+                        height: Int
+                    ) {
+                        // (Re-)Compute the ideal size of the camera-preview display (the area that the
+                        // camera-preview frames get rendered onto, potentially with scaling and rotation)
+                        // based on the size of the SurfaceView that contains the display.
+                        val viewSize = Size(width, height)
+                        val displaySize = cameraHelper.computeDisplaySizeFromViewSize(viewSize)
+
+                        // Connect the converter to the camera-preview frames as its input (via
+                        // previewFrameTexture), and configure the output width and height as the computed
+                        // display size.
+                        converter.setSurfaceTextureAndAttachToGLContext(
+                            previewFrameTexture, displaySize.width, displaySize.height
+                        )
+                    }
+
+                    override fun surfaceDestroyed(holder: SurfaceHolder) {
+                        processor.videoSurfaceOutput.setSurface(null)
+                    }
+                })
+    }
+
 
     /**
      * This code initializes the camera-related portion of the code, adding listeners to enable
@@ -514,6 +581,7 @@ class RecordingActivity : AppCompatActivity() {
          * User has given permission to use the camera
          */
         else {
+            startCamera()
 
             val buttonLock = ReentrantLock()
 
@@ -827,6 +895,17 @@ class RecordingActivity : AppCompatActivity() {
         filterMatrix.setSaturation(0.0f)
         val filter = ColorMatrixColorFilter(filterMatrix)
         recordingLightView.colorFilter = filter
+
+        // Next view
+        previewDisplayView = SurfaceView(this)
+        setupPreviewDisplayView()
+
+        AndroidAssetUtil.initializeNativeAssetManager(this)
+
+        eglManager = EglManager(null)
+        processor = FrameProcessor(this, eglManager.nativeContext,
+            BINARY_GRAPH_NAME, INPUT_VIDEO_STREAM_NAME, OUTPUT_VIDEO_STREAM_NAME)
+        processor.videoSurfaceOutput.setFlipY(true)
 
         initializeCamera()
     }
