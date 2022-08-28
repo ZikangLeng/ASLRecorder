@@ -311,29 +311,8 @@ class RecordingActivity : AppCompatActivity() {
             // Used to bind the lifecycle of cameras to the lifecycle owner
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
-            // Preview
-            val preview = Preview.Builder()
-                .build()
-                .also {
-                    it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
-                }
-
-            binding.viewFinder.implementationMode = PreviewView.ImplementationMode.COMPATIBLE;
-
             // Select front camera as a default
             val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
-
-            try {
-                // Unbind use cases before rebinding
-                cameraProvider.unbindAll()
-
-                // Bind use cases to camera
-                cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview)
-
-            } catch(exc: Exception) {
-                Log.e(TAG, "Use case binding failed", exc)
-            }
 
             // video recording
 
@@ -349,7 +328,7 @@ class RecordingActivity : AppCompatActivity() {
             try {
                 // Bind use cases to camera
                 cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, videoCapture)
+                    this, cameraSelector, videoCapture)
             } catch(exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
             }
@@ -461,8 +440,6 @@ class RecordingActivity : AppCompatActivity() {
 
     private fun setupPreviewDisplayView() {
         previewDisplayView.visibility = View.GONE
-        val viewGroup = findViewById<ViewGroup>(R.id.aspectRatioConstraint)
-        viewGroup.addView(previewDisplayView)
         previewDisplayView
             .holder
             .addCallback(
@@ -795,7 +772,7 @@ class RecordingActivity : AppCompatActivity() {
         recordingLightView.colorFilter = filter
 
         // Next view
-        previewDisplayView = SurfaceView(this)
+        previewDisplayView = binding.surfaceView
         setupPreviewDisplayView()
 
         AndroidAssetUtil.initializeNativeAssetManager(this)

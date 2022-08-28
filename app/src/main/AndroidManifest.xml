@@ -3,6 +3,7 @@
     package="edu.gatech.ccg.aslrecorder">
 
     <uses-feature android:name="android.hardware.camera.any" />
+    <uses-feature android:glEsVersion="0x00030002" android:required="true" />
 
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
