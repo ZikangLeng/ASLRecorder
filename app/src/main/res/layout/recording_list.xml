@@ -27,6 +27,7 @@
         android:layout_marginTop="48dp"
         android:layout_marginEnd="12dp"
         android:layout_marginBottom="96dp"
+        android:stateListAnimator="@null"
         app:layout_constraintBottom_toBottomOf="@+id/view"
         app:layout_constraintEnd_toEndOf="@+id/view"
         app:layout_constraintStart_toStartOf="@+id/view"
@@ -51,8 +52,32 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="24dp"
         android:text="Save &amp; Exit"
+        android:stateListAnimator="@null"
         app:layout_constraintBottom_toBottomOf="@+id/view"
         app:layout_constraintEnd_toEndOf="@+id/view"
         app:layout_constraintStart_toStartOf="@+id/view" />
+
+    <RelativeLayout
+        android:id="@+id/loadingPanel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center">>
+
+        <ProgressBar
+            android:id="@+id/progressWheel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            tools:layout_editor_absoluteX="273dp"
+            tools:layout_editor_absoluteY="342dp" />
+    </RelativeLayout>
+
+    <LinearLayout
+        android:id="@+id/loadingScreen"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0.8"
+        android:background="#000000"
+        android:orientation="horizontal" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

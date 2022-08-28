@@ -2,7 +2,7 @@
  * VideoPreviewFragment.kt
  * This file is part of ASLRecorder, licensed under the MIT license.
  *
- * Copyright (c) 2021 Sahir Shahryar <contact@sahirshahryar.com>
+ * Copyright (c) 2021 Sahir Shahryar <contact@sahirshahryar.com>, Matthew So <matthew.so@gatech.edu>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@ package edu.gatech.ccg.aslrecorder.recording
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
 import android.view.SurfaceHolder
 import android.view.View
 import android.widget.TextView
@@ -35,6 +36,7 @@ import androidx.annotation.LayoutRes
 import androidx.fragment.app.DialogFragment
 import edu.gatech.ccg.aslrecorder.R
 import java.io.File
+import java.util.*
 
 class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
      SurfaceHolder.Callback, MediaPlayer.OnPreparedListener {
@@ -47,6 +49,12 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
 
     lateinit var attemptNumber: String
 
+    lateinit var timer: Timer
+    lateinit var timerTask: TimerTask
+
+    var startTime: Long = 0
+    var endTime: Long = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val recordingPath = arguments?.getString("filename")!!
@@ -57,6 +65,11 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
 
         val attemptNumber = arguments?.getInt("recordingIndex")!! + 1
         this.attemptNumber = "Attempt #$attemptNumber"
+
+        startTime = arguments?.getLong("startTime")!!
+        endTime = arguments?.getLong("endTime")!!
+
+        timer = Timer()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -94,8 +107,23 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
     override fun onPrepared(mp: MediaPlayer?) {
         mp?.let {
             it.isLooping = true
+            it.seekTo(startTime.toInt())
             it.start()
         }
+        var mTimerHandler: Handler = Handler()
+
+        timerTask = object : TimerTask() {
+            override fun run() {
+                mTimerHandler.post {
+                    mediaPlayer.let {
+                        it.seekTo(startTime.toInt())
+                    }
+                }
+            }
+        }
+
+        timer.schedule(timerTask, Date(Calendar.getInstance().time.time + (endTime - startTime)), endTime - startTime)
+
     }
 
 

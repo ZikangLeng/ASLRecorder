@@ -26,18 +26,22 @@ package edu.gatech.ccg.aslrecorder.recording
 
 import android.os.Bundle
 import android.view.View
+import android.widget.Button
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
 import edu.gatech.ccg.aslrecorder.R
 import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity
 
-class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout) {
+class RequestPermissionFragment(label: String, @LayoutRes layout: Int): Fragment(layout) {
 
     var label: String = label
     lateinit var counter: TextView
 
     private var TARGET_RECORDINGS: Int = 0
+
+//    lateinit var button: Button
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

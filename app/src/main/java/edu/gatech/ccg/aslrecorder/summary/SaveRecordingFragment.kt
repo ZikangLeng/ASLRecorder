@@ -1,8 +1,8 @@
 /**
- * WordPromptFragment.kt
+ * RecordingListFragment.kt
  * This file is part of ASLRecorder, licensed under the MIT license.
  *
- * Copyright (c) 2021 Sahir Shahryar <contact@sahirshahryar.com>
+ * Copyright (c) 2021 Matthew So <matthew.so@gatech.edu>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,37 +22,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package edu.gatech.ccg.aslrecorder.recording
+
+package edu.gatech.ccg.aslrecorder.summary
 
 import android.os.Bundle
 import android.view.View
-import android.widget.TextView
 import androidx.annotation.LayoutRes
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import edu.gatech.ccg.aslrecorder.R
-import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity
+import edu.gatech.ccg.aslrecorder.recording.RecordingActivity
+import edu.gatech.ccg.aslrecorder.recording.RecordingEntryVideo
+import java.util.ArrayList
 
-class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout) {
+class SaveRecordingFragment(wordList: ArrayList<String>,
+                            sessionFiles: HashMap<String, ArrayList<RecordingEntryVideo>>,
+                            activity: RecordingActivity,
+                            @LayoutRes layout: Int): Fragment(layout) {
 
-    var label: String = label
-    lateinit var counter: TextView
+    val words = wordList
+    val files = sessionFiles
+    val recording = activity
 
-    private var TARGET_RECORDINGS: Int = 0
+    var recordingListFragment: RecordingListFragment? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
 
-        val textField = view.findViewById<TextView>(R.id.promptText)
-        textField.text = label
-
-        TARGET_RECORDINGS = SplashScreenActivity.SplashScreenActivity.NUM_RECORDINGS
-
-        counter = view.findViewById(R.id.recordingCounter)
-        counter.text = "0 / $TARGET_RECORDINGS"
-    }
-
-    fun updateWordCount(count: Int) {
-        counter.text = "$count / $TARGET_RECORDINGS"
     }
 
 }

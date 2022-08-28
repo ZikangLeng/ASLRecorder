@@ -19,7 +19,9 @@
         <androidx.camera.view.PreviewView
             android:id="@+id/viewFinder"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent">
+
+        </androidx.camera.view.PreviewView>
 
 <!--        <view-->
 <!--            android:id="@+id/cameraPreview"-->
@@ -42,21 +44,62 @@
         app:layout_constraintEnd_toEndOf="@id/aspectRatioConstraint"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="@id/aspectRatioConstraint"
-        app:layout_constraintTop_toTopOf="@id/aspectRatioConstraint" />
+        app:layout_constraintTop_toTopOf="@id/aspectRatioConstraint" >
+
+    </androidx.viewpager2.widget.ViewPager2>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/recordButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="90dp"
-        android:backgroundTint="#F80000"
         android:clickable="true"
         android:scaleX="2"
         android:scaleY="2"
         app:borderWidth="0dp"
+        app:backgroundTint="#F80000"
         app:layout_constraintBottom_toBottomOf="@id/aspectRatioConstraint"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:srcCompat="@drawable/record"
         app:tint="@android:color/white" />
+
+    <TextView
+        android:id="@+id/timerLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="64dp"
+        android:background="@drawable/rounded_corners_translucent"
+        android:fontFamily="monospace"
+        android:padding="10dp"
+        android:text="15:00"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/recordButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/textView5"
+        android:layout_width="110dp"
+        android:layout_height="20dp"
+        android:layout_marginTop="75dp"
+        android:gravity="center"
+        android:text="Video Recording"
+        android:textColor="@android:color/black"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@+id/videoRecordingLight3"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/videoRecordingLight3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="40dp"
+        app:layout_constraintBottom_toBottomOf="@+id/textView5"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/textView5"
+        app:srcCompat="@drawable/recording_light" />
 </androidx.constraintlayout.widget.ConstraintLayout>

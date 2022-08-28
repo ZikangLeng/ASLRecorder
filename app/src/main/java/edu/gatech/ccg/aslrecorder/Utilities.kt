@@ -24,6 +24,8 @@
  */
 package edu.gatech.ccg.aslrecorder
 
+import android.util.Log
+import edu.gatech.ccg.aslrecorder.recording.RecordingEntryVideo
 import kotlin.random.Random
 
 /**
@@ -128,4 +130,131 @@ fun <T> randomChoice(list: List<T>, count: Int, seed: Long? = null): ArrayList<T
     }
 
     return result
+}
+
+
+fun padZeroes(number: Int, digits: Int = 5): String {
+    val asString = number.toString()
+    if (asString.length >= digits) {
+        return asString
+    }
+
+    return "0".repeat(digits - asString.length) + asString
+}
+
+fun <T> weightedRandomChoice(list: List<T>, weights: List<Float>, count: Int,
+                             seed: Long? = null): ArrayList<T> {
+    Log.d("DEBUG", "weightedRandomChoice elements: [" +
+            list.joinToString(", ") + "]")
+
+    val result = ArrayList<T>()
+
+    var seed2 = seed
+    if (seed2 == null) {
+        seed2 = Random.nextLong()
+    }
+
+    val rand = Random(seed2)
+
+    if (count == 0 || list.isEmpty()) {
+        return result
+    }
+
+    val totalWeight = weights.sum()
+    if (totalWeight == 0.0f) {
+        return result
+    }
+
+    val indexedWeights = ArrayList<Pair<Float, Int>>()
+    var i = 0
+    while (i < weights.size) {
+        indexedWeights.add(Pair(weights[i], i))
+        i++
+    }
+
+    indexedWeights.sortBy { it.first }
+
+    val cumulativeSums = ArrayList<Float>()
+    var sum = 0.0f
+    for (elem in indexedWeights) {
+        sum += elem.first
+        cumulativeSums.add(sum)
+    }
+
+    Log.d("DEBUG", "weightedRandomChoice cumulative weights: [" +
+            cumulativeSums.joinToString(", ") + "]")
+
+    for (j in 1..count) {
+        val weightedPoint = rand.nextFloat() * sum
+        val correspondingIndex = binarySearchRegion(cumulativeSums, weightedPoint,
+            0, cumulativeSums.size)
+
+        val weightData = indexedWeights[correspondingIndex]
+        val actualSelectionIndex = weightData.second
+        result.add(list[actualSelectionIndex])
+
+        // Adjust sums
+        for (k in correspondingIndex until cumulativeSums.size) {
+            cumulativeSums[k] -= weightData.first
+        }
+
+        cumulativeSums.removeAt(correspondingIndex)
+    }
+
+    return result
+}
+
+
+/**
+ * Find the region that contains the target integer. For example:
+ *
+ * [ 0.0, 1.5, 3.7, 4.9, 8.0, 11.6, 17.7 ] with weight 9.4
+ *
+ * Round 1: lo = 0, hi = 7, mid = 3    -> mid (4.9) >!= target, mid+1 (8.0) >!= target
+ * Round 2: lo = 3, hi = 7, mid = 5    -> mid (11.6) >= target
+ * Round 3: lo = 3, hi = 5, mid = 4    -> mid (8.0) >!= target, mid+1 (11.6) >= target -> return 4
+ */
+fun binarySearchRegion(regions: List<Float>, target: Float, lo: Int, hi: Int): Int {
+    if (lo == hi) {
+        return lo
+    }
+
+    val mid = (lo + hi) / 2
+    return when {
+        regions[mid] >= target     -> binarySearchRegion(regions, target, lo, mid)
+        mid + 1 == regions.size    -> mid
+        regions[mid + 1] >= target -> mid
+
+        else                       -> binarySearchRegion(regions, target, mid, hi)
+    }
+}
+
+fun convertRecordingEntryVideoToString(recordingEntry: RecordingEntryVideo): String {
+    var conversion: StringBuilder = StringBuilder()
+
+    conversion.append("{\'file\': \'${recordingEntry.file.absolutePath}\', ")
+    conversion.append("\'videoStart\': \'${recordingEntry.videoStart}\', ")
+    conversion.append("\'signStart\': \'${recordingEntry.signStart}\', ")
+    conversion.append("\'signEnd\': \'${recordingEntry.signEnd}\'}")
+
+    return conversion.toString()
+}
+
+fun convertRecordingListToString(sessionVideoFiles: HashMap<String, ArrayList<RecordingEntryVideo>>): String {
+    var conversion: StringBuilder = StringBuilder()
+
+    conversion.append("{")
+
+    for ((key, value) in sessionVideoFiles) {
+        conversion.append("\'$key\': [")
+        for (entry in value) {
+            conversion.append("${entry}, ")
+        }
+        conversion.delete(conversion.length - 2, conversion.length)
+        conversion.append("], ")
+    }
+    conversion.delete(conversion.length - 2, conversion.length)
+    conversion.append("}")
+//    conversion.append("${sessionVideoFiles[0].file.absolutePath}")
+    return conversion.toString()
 }

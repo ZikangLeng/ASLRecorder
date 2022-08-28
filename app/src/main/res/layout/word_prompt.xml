@@ -39,4 +39,29 @@
         app:layout_constraintBottom_toTopOf="@+id/promptText"
         app:layout_constraintStart_toStartOf="@+id/promptText" />
 
+    <TextView
+        android:id="@+id/recordingCounter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="24dp"
+        android:text="0 / 5"
+        app:layout_constraintEnd_toEndOf="@+id/view"
+        app:layout_constraintTop_toTopOf="@+id/instructions" />
+
+    <!--    <LinearLayout-->
+<!--        android:id="@+id/videoRecordingLight"-->
+<!--        android:layout_width="17dp"-->
+<!--        android:layout_height="17dp"-->
+<!--        android:background="@+id/recording_light"-->
+<!--        android:orientation="horizontal"-->
+<!--        app:layout_constraintBottom_toBottomOf="@+id/view"-->
+<!--        app:layout_constraintEnd_toEndOf="@+id/view"-->
+<!--        app:layout_constraintStart_toStartOf="@+id/view"-->
+<!--        app:layout_constraintTop_toTopOf="@+id/view" />-->
+<!--    <View-->
+<!--        android:id="@+id/videoRecordingLight"-->
+<!--        android:layout_width="10dp"-->
+<!--        android:layout_height="10dp"-->
+<!--        android:background="@+id/recording_light" />-->
+
 </androidx.constraintlayout.widget.ConstraintLayout>

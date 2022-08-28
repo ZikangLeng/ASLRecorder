@@ -19,23 +19,27 @@ sign language recognition models. Forked from Sahir Shahryar's ASLRecorder: http
 - [ ] UI Improvements
   - [x] Non-stretched camera preview
     - [x] Make it 16:9
-  - [ ] Timer
-  - [ ] Feedback on successful recording
+  - [x] Timer
+  - [x] Feedback on successful recording
     - [x] Haptics
-    - [ ] Visual feedback
+    - [x] Visual feedback
   - [ ] Home page, tutorial?
   - [x] Recording sessions (esp. if we have a lot of one-handed signs)
     - [x] Random selection, topics, etc.?
     - [x] **Option to delete a botched recording** (better for us too!)
     - [x] Save all recordings to Google Photos on session end
-- [ ] Persistence? (Store which signs users have already recorded so they don't need to re-record)
+  - [x] Intermediate screen to let users know when they will stop recording
+  - [x] All-done screen once all needed phrases are recorded
+- [x] Persistence? (Store which signs users have already recorded so they don't need to re-record)
 - [x] Multitasking support (current version may crash on exit/reopen)
 - [x] Easy access to video files (upload? direct file browser?) — **copy to Downloads folder**
   - [x] Upload strategy for videos (upload to Google Photos - preserves file name and uploads automatically), however there is a toggle that must be flipped on in the Google Photos Android
   app to enable automatic uploads. Should be done before shipping devices out.
 - [x] Multiuser support (includes user information in saved files)
 - [x] App asks for camera and storage permission before starting
+    - [x] App handles camera and storage permission denial gracefully
 - [x] Support Android 11+ external writing
+- [x] General bugfixing (no crashes)
 
 
 ## Notes
