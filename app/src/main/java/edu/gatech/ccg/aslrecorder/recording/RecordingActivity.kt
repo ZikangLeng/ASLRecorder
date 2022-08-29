@@ -60,9 +60,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.mediapipe.components.CameraXPreviewHelper
-import com.google.mediapipe.components.ExternalTextureConverter
-import com.google.mediapipe.components.FrameProcessor
+import com.google.mediapipe.components.*
 import com.google.mediapipe.framework.AndroidAssetUtil
 import com.google.mediapipe.glutil.EglManager
 import edu.gatech.ccg.aslrecorder.R
@@ -305,129 +303,129 @@ class RecordingActivity : AppCompatActivity() {
     }
 
     private fun startCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-
-        cameraProviderFuture.addListener(Runnable {
-            // Used to bind the lifecycle of cameras to the lifecycle owner
-            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
-
-            // Select front camera as a default
-            val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
-
-            // video recording
-
-            val qualitySelector = QualitySelector.fromOrderedList(
-                listOf(Quality.UHD, Quality.FHD, Quality.HD, Quality.SD))
-
-            val recorder = Recorder.Builder()
-                .setExecutor(cameraExecutor).setQualitySelector(qualitySelector)
-                .build()
-
-            videoCapture = VideoCapture.withOutput(recorder)
-
-            try {
-                // Bind use cases to camera
-                cameraProvider.bindToLifecycle(
-                    this, cameraSelector, videoCapture)
-            } catch(exc: Exception) {
-                Log.e(TAG, "Use case binding failed", exc)
-            }
-
-            // Create MediaStoreOutputOptions for our recorder
-
-            val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss.SSS", Locale.US)
-            val currentWord = this@RecordingActivity.currentWord
-            filename = "${UID}-${category}-${sdf.format(Date())}"
-            metadataFilename = filename
-
-            val contentValues = ContentValues().apply {
-                put(MediaStore.Video.Media.DISPLAY_NAME, "$filename.mp4")
-            }
-            val mediaStoreOutput = MediaStoreOutputOptions.Builder(super.getContentResolver(),
-                MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
-                .setContentValues(contentValues)
-                .build()
-
-            // 2. Configure Recorder and Start recording to the mediaStoreOutput.
-
-            currRecording = videoCapture.output
-                .prepareRecording(context, mediaStoreOutput)
-                .start(ContextCompat.getMainExecutor(super.getBaseContext())) { videoRecordEvent ->
-                    run {
-                        if (videoRecordEvent is VideoRecordEvent.Start) {
-                            videoStartTime = Calendar.getInstance().time
-                            Log.d("currRecording", "Recording Started")
-                            recordButton.animate().apply {
-                                alpha(1.0f)
-                                duration = 250
-                            }.start()
-
-                            recordButton.visibility = View.VISIBLE
-
-                            recordButtonDisabled = false
-                            recordButton.isClickable = true
-                            recordButton.isFocusable = true
-
-                            val filterMatrix = ColorMatrix()
-                            filterMatrix.setSaturation(1.0f)
-                            val filter = ColorMatrixColorFilter(filterMatrix)
-                            recordingLightView.colorFilter = filter
-
-                        } else if (videoRecordEvent is VideoRecordEvent.Pause) {
-                            Log.d("currRecording", "Recording Paused")
-                        } else if (videoRecordEvent is VideoRecordEvent.Resume) {
-                            Log.d("currRecording", "Recording Resumed")
-                        } else if (videoRecordEvent is VideoRecordEvent.Finalize) {
-                            val finalizeEvent = videoRecordEvent as VideoRecordEvent.Finalize
-                            // Handles a finalize event for the active recording, checking Finalize.getError()
-                            val error = finalizeEvent.error
-
-                            if (error != VideoRecordEvent.Finalize.ERROR_NONE) {
-                                Log.d("currRecording", "Error in saving")
-                            } else {
-                                window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
-
-                                var loadingScreen = findViewById<LinearLayout>(R.id.loadingScreen)
-                                loadingScreen.alpha = 0.0f
-
-                                var loadingWheel = findViewById<RelativeLayout>(R.id.loadingPanel)
-                                loadingWheel.visibility = View.INVISIBLE
-
-                                Log.d("currRecording", "Recording Finalized")
-
-                                val filterMatrix = ColorMatrix()
-                                filterMatrix.setSaturation(0.0f)
-                                val filter = ColorMatrixColorFilter(filterMatrix)
-                                recordingLightView.colorFilter = filter
-                            }
-                        } else {
-
-                        }
-
-                        // All events, including VideoRecordEvent.Status, contain RecordingStats.
-                        // This can be used to update the UI or track the recording duration.
-                        // val recordingStats = videoRecordEvent.recordingStats
-                    }
-                }
-
-            countdownText = findViewById(R.id.timerLabel)
-
-            countdownTimer = object : CountDownTimer(900_000, 1000) {
-                override fun onTick(p0: Long) {
-                    val rawSeconds = (p0 / 1000).toInt() + 1
-                    val minutes = padZeroes(rawSeconds / 60, 2)
-                    val seconds = padZeroes(rawSeconds % 60, 2)
-                    countdownText.text = "$minutes:$seconds"
-                }
-
-                override fun onFinish() {
-
-                }
-            }
-
-            countdownTimer.start()
-
-        }, ContextCompat.getMainExecutor(this))
+//        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+//
+//        cameraProviderFuture.addListener(Runnable {
+//            // Used to bind the lifecycle of cameras to the lifecycle owner
+//            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
+//
+//            // Select front camera as a default
+//            val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+//
+//            // video recording
+//
+//            val qualitySelector = QualitySelector.fromOrderedList(
+//                listOf(Quality.UHD, Quality.FHD, Quality.HD, Quality.SD))
+//
+//            val recorder = Recorder.Builder()
+//                .setExecutor(cameraExecutor).setQualitySelector(qualitySelector)
+//                .build()
+//
+//            videoCapture = VideoCapture.withOutput(recorder)
+//
+//            try {
+//                // Bind use cases to camera
+//                cameraProvider.bindToLifecycle(
+//                    this, cameraSelector, videoCapture)
+//            } catch(exc: Exception) {
+//                Log.e(TAG, "Use case binding failed", exc)
+//            }
+//
+//            // Create MediaStoreOutputOptions for our recorder
+//
+//            val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss.SSS", Locale.US)
+//            val currentWord = this@RecordingActivity.currentWord
+//            filename = "${UID}-${category}-${sdf.format(Date())}"
+//            metadataFilename = filename
+//
+//            val contentValues = ContentValues().apply {
+//                put(MediaStore.Video.Media.DISPLAY_NAME, "$filename.mp4")
+//            }
+//            val mediaStoreOutput = MediaStoreOutputOptions.Builder(super.getContentResolver(),
+//                MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+//                .setContentValues(contentValues)
+//                .build()
+//
+//            // 2. Configure Recorder and Start recording to the mediaStoreOutput.
+//
+//            currRecording = videoCapture.output
+//                .prepareRecording(context, mediaStoreOutput)
+//                .start(ContextCompat.getMainExecutor(super.getBaseContext())) { videoRecordEvent ->
+//                    run {
+//                        if (videoRecordEvent is VideoRecordEvent.Start) {
+//                            videoStartTime = Calendar.getInstance().time
+//                            Log.d("currRecording", "Recording Started")
+//                            recordButton.animate().apply {
+//                                alpha(1.0f)
+//                                duration = 250
+//                            }.start()
+//
+//                            recordButton.visibility = View.VISIBLE
+//
+//                            recordButtonDisabled = false
+//                            recordButton.isClickable = true
+//                            recordButton.isFocusable = true
+//
+//                            val filterMatrix = ColorMatrix()
+//                            filterMatrix.setSaturation(1.0f)
+//                            val filter = ColorMatrixColorFilter(filterMatrix)
+//                            recordingLightView.colorFilter = filter
+//
+//                        } else if (videoRecordEvent is VideoRecordEvent.Pause) {
+//                            Log.d("currRecording", "Recording Paused")
+//                        } else if (videoRecordEvent is VideoRecordEvent.Resume) {
+//                            Log.d("currRecording", "Recording Resumed")
+//                        } else if (videoRecordEvent is VideoRecordEvent.Finalize) {
+//                            val finalizeEvent = videoRecordEvent as VideoRecordEvent.Finalize
+//                            // Handles a finalize event for the active recording, checking Finalize.getError()
+//                            val error = finalizeEvent.error
+//
+//                            if (error != VideoRecordEvent.Finalize.ERROR_NONE) {
+//                                Log.d("currRecording", "Error in saving")
+//                            } else {
+//                                window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+//
+//                                var loadingScreen = findViewById<LinearLayout>(R.id.loadingScreen)
+//                                loadingScreen.alpha = 0.0f
+//
+//                                var loadingWheel = findViewById<RelativeLayout>(R.id.loadingPanel)
+//                                loadingWheel.visibility = View.INVISIBLE
+//
+//                                Log.d("currRecording", "Recording Finalized")
+//
+//                                val filterMatrix = ColorMatrix()
+//                                filterMatrix.setSaturation(0.0f)
+//                                val filter = ColorMatrixColorFilter(filterMatrix)
+//                                recordingLightView.colorFilter = filter
+//                            }
+//                        } else {
+//
+//                        }
+//
+//                        // All events, including VideoRecordEvent.Status, contain RecordingStats.
+//                        // This can be used to update the UI or track the recording duration.
+//                        // val recordingStats = videoRecordEvent.recordingStats
+//                    }
+//                }
+//
+//            countdownText = findViewById(R.id.timerLabel)
+//
+//            countdownTimer = object : CountDownTimer(900_000, 1000) {
+//                override fun onTick(p0: Long) {
+//                    val rawSeconds = (p0 / 1000).toInt() + 1
+//                    val minutes = padZeroes(rawSeconds / 60, 2)
+//                    val seconds = padZeroes(rawSeconds % 60, 2)
+//                    countdownText.text = "$minutes:$seconds"
+//                }
+//
+//                override fun onFinish() {
+//
+//                }
+//            }
+//
+//            countdownTimer.start()
+//
+//        }, ContextCompat.getMainExecutor(this))
 
         cameraHelper = CameraXPreviewHelper()
         cameraHelper.setOnCameraStartedListener { surfaceTexture: SurfaceTexture? ->
@@ -436,10 +434,14 @@ class RecordingActivity : AppCompatActivity() {
             }
             previewDisplayView.visibility = View.VISIBLE
         }
+
+        cameraHelper.startCamera(this, CameraHelper.CameraFacing.FRONT, null)
     }
 
     private fun setupPreviewDisplayView() {
         previewDisplayView.visibility = View.GONE
+        val viewGroup = findViewById<FrameLayout>(R.id.aspectRatioConstraint)
+        viewGroup.addView(previewDisplayView)
         previewDisplayView
             .holder
             .addCallback(
@@ -506,9 +508,9 @@ class RecordingActivity : AppCompatActivity() {
          * User has given permission to use the camera
          */
         else {
-            converter = ExternalTextureConverter(eglManager.context);
-            converter.setFlipY(true);
-            converter.setConsumer(processor);
+            converter = ExternalTextureConverter(eglManager.context)
+            converter.setFlipY(true)
+            converter.setConsumer(processor)
 
             startCamera()
 
@@ -603,7 +605,7 @@ class RecordingActivity : AppCompatActivity() {
         super.onStop()
         try {
 //            session.close()
-            camera.close()
+//            camera.close()
             cameraThread.quitSafely()
         } catch (exc: Throwable) {
             Log.e(TAG, "Error closing camera", exc)
@@ -772,7 +774,7 @@ class RecordingActivity : AppCompatActivity() {
         recordingLightView.colorFilter = filter
 
         // Next view
-        previewDisplayView = binding.surfaceView
+        previewDisplayView = SurfaceView(this)
         setupPreviewDisplayView()
 
         AndroidAssetUtil.initializeNativeAssetManager(this)
@@ -781,6 +783,8 @@ class RecordingActivity : AppCompatActivity() {
         processor = FrameProcessor(this, eglManager.nativeContext,
             BINARY_GRAPH_NAME, INPUT_VIDEO_STREAM_NAME, OUTPUT_VIDEO_STREAM_NAME)
         processor.videoSurfaceOutput.setFlipY(true)
+
+        PermissionHelper.checkAndRequestCameraPermissions(this);
 
         initializeCamera()
     }
