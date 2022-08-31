@@ -115,8 +115,8 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
         timerTask = object : TimerTask() {
             override fun run() {
                 mTimerHandler.post {
-                    mediaPlayer.let {
-                        it.seekTo(startTime.toInt())
+                    if (mediaPlayer.isPlaying) {
+                        mediaPlayer.seekTo(startTime.toInt())
                     }
                 }
             }
