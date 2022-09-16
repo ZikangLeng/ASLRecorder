@@ -127,6 +127,17 @@ class RecordingActivity : AppCompatActivity() {
      */
     var recordButtonDisabled = false
 
+    /**
+     * Marks whether a clip is currently being recorded.
+     */
+    var isRecording = false
+
+    /**
+     * If set to true, the video recording will be stopped when the user
+     * releases the "Record" button.
+     */
+    var stopRecordingOnRelease = false
+
 
     /**
      * List of words that we can swipe through
@@ -442,7 +453,11 @@ class RecordingActivity : AppCompatActivity() {
                 }
 
                 override fun onFinish() {
-
+                    if (isRecording) {
+                        stopRecordingOnRelease = true
+                    } else {
+                        wordPager.currentItem = wordList.size + 1
+                    }
                 }
             }
 
@@ -561,6 +576,7 @@ class RecordingActivity : AppCompatActivity() {
                             Log.d(TAG, "Recording starting")
 
                             currStartTime = Calendar.getInstance().time
+                            isRecording = true
 
                         }
                         wordPager.isUserInputEnabled = false
@@ -615,6 +631,13 @@ class RecordingActivity : AppCompatActivity() {
                         wordPager.isUserInputEnabled = true
                         recordButton.backgroundTintList = ColorStateList.valueOf(0xFFF80000.toInt())
                         recordButton.clearColorFilter()
+
+                        isRecording = false
+                        if (stopRecordingOnRelease) {
+                            runOnUiThread {
+                                wordPager.currentItem = wordList.size + 1
+                            }
+                        }
                     }
                 }
                 true
