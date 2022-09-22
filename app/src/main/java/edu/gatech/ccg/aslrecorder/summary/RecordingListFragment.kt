@@ -28,6 +28,8 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.RelativeLayout
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -58,6 +60,12 @@ class RecordingListFragment(wordList: ArrayList<String>,
         scrollView.layoutManager = LinearLayoutManager(this.context)
         recordingListAdapter = RecordingListAdapter(words, files, recording)
         scrollView.adapter = recordingListAdapter
+
+        var loadingScreen = view.findViewById<LinearLayout>(R.id.loadingScreen)
+        loadingScreen.alpha = 0.0f
+
+        var loadingWheel = view.findViewById<RelativeLayout>(R.id.loadingPanel)
+        loadingWheel.visibility = View.INVISIBLE
 
         this.saveButton = view.findViewById(R.id.closeSession)
         this.saveButton.setOnClickListener {

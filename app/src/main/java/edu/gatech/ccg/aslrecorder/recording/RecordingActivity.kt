@@ -245,6 +245,8 @@ class RecordingActivity : AppCompatActivity() {
 
     private lateinit var recordingLightView: ImageView
 
+    private var currPosition: Int = 0
+
     // Mediapipe
     private lateinit var imageCapture: ImageCapture
     private lateinit var imageCaptureBuilder: ImageCapture.Builder
@@ -261,14 +263,6 @@ class RecordingActivity : AppCompatActivity() {
 
     // Creates and manages an {@link EGLContext}.
     private lateinit var eglManager: EglManager
-
-    // Sends camera-preview frames into a MediaPipe graph for processing, and displays the processed
-    // frames onto a {@link Surface}.
-    private lateinit var processor: FrameProcessor
-
-    // Converts the GL_TEXTURE_EXTERNAL_OES texture from Android camera into a regular texture to be
-    // consumed by {@link FrameProcessor} and the underlying MediaPipe graph.
-    private lateinit var converter: ExternalTextureConverter
 
     // Handles camera access via the {@link CameraX} Jetpack support library.
     private lateinit var cameraHelper: CameraXPreviewHelper
@@ -413,24 +407,22 @@ class RecordingActivity : AppCompatActivity() {
                             val finalizeEvent = videoRecordEvent as VideoRecordEvent.Finalize
                             // Handles a finalize event for the active recording, checking Finalize.getError()
                             val error = finalizeEvent.error
+                            Log.d("currRecording", "Recording finalized. Cause: {$error}")
 
-                            if (error != VideoRecordEvent.Finalize.ERROR_NONE) {
+                            if (error != VideoRecordEvent.Finalize.ERROR_NONE && error != VideoRecordEvent.Finalize.ERROR_SOURCE_INACTIVE) {
                                 Log.d("currRecording", "Error in saving")
                             } else {
-                                window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
-
-                                var loadingScreen = findViewById<LinearLayout>(R.id.loadingScreen)
-                                loadingScreen.alpha = 0.0f
-
-                                var loadingWheel = findViewById<RelativeLayout>(R.id.loadingPanel)
-                                loadingWheel.visibility = View.INVISIBLE
-
                                 Log.d("currRecording", "Recording Finalized")
 
                                 val filterMatrix = ColorMatrix()
                                 filterMatrix.setSaturation(0.0f)
                                 val filter = ColorMatrixColorFilter(filterMatrix)
                                 recordingLightView.colorFilter = filter
+                            }
+
+                            if (error == VideoRecordEvent.Finalize.ERROR_SOURCE_INACTIVE) {
+                                wordPager.currentItem = wordList.size + 1
+                                Log.d("currRecording", "Recording finalized. Cause: {$}")
                             }
                         } else {
 
@@ -444,7 +436,7 @@ class RecordingActivity : AppCompatActivity() {
 
             countdownText = findViewById(R.id.timerLabel)
 
-            countdownTimer = object : CountDownTimer(900_000, 1000) {
+            countdownTimer = object : CountDownTimer(9_000, 1000) {
                 override fun onTick(p0: Long) {
                     val rawSeconds = (p0 / 1000).toInt() + 1
                     val minutes = padZeroes(rawSeconds / 60, 2)
@@ -478,38 +470,6 @@ class RecordingActivity : AppCompatActivity() {
         previewDisplayView.visibility = View.GONE
         val viewGroup = findViewById<ViewGroup>(R.id.aspectRatioConstraint)
         viewGroup.addView(previewDisplayView)
-        previewDisplayView
-            .holder
-            .addCallback(
-                object : SurfaceHolder.Callback {
-                    override fun surfaceCreated(holder: SurfaceHolder) {
-                        processor.videoSurfaceOutput.setSurface(holder.surface)
-                    }
-
-                    override fun surfaceChanged(
-                        holder: SurfaceHolder,
-                        format: Int,
-                        width: Int,
-                        height: Int
-                    ) {
-                        // (Re-)Compute the ideal size of the camera-preview display (the area that the
-                        // camera-preview frames get rendered onto, potentially with scaling and rotation)
-                        // based on the size of the SurfaceView that contains the display.
-                        val viewSize = Size(width, height)
-                        val displaySize = cameraHelper.computeDisplaySizeFromViewSize(viewSize)
-
-                        // Connect the converter to the camera-preview frames as its input (via
-                        // previewFrameTexture), and configure the output width and height as the computed
-                        // display size.
-                        converter.setSurfaceTextureAndAttachToGLContext(
-                            previewFrameTexture, displaySize.width, displaySize.height
-                        )
-                    }
-
-                    override fun surfaceDestroyed(holder: SurfaceHolder) {
-                        processor.videoSurfaceOutput.setSurface(null)
-                    }
-                })
     }
 
 
@@ -544,10 +504,6 @@ class RecordingActivity : AppCompatActivity() {
          * User has given permission to use the camera
          */
         else {
-            converter = ExternalTextureConverter(eglManager.context);
-            converter.setFlipY(true);
-            converter.setConsumer(processor);
-
             startCamera()
 
             val buttonLock = ReentrantLock()
@@ -647,13 +603,13 @@ class RecordingActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        try {
-//            session.close()
-            camera.close()
-            cameraThread.quitSafely()
-        } catch (exc: Throwable) {
-            Log.e(TAG, "Error closing camera", exc)
-        }
+//        try {
+////            session.close()
+//            camera.close()
+//            cameraThread.quitSafely()
+//        } catch (exc: Throwable) {
+//            Log.e(TAG, "Error closing camera", exc)
+//        }
     }
 
     override fun onDestroy() {
@@ -723,22 +679,26 @@ class RecordingActivity : AppCompatActivity() {
         wordPager.adapter = WordPagerAdapter(this, wordList, sessionVideoFiles)
         wordPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                super.onPageSelected(position)
+                if (currPosition != wordList.size + 1) {
+                    currPosition = position
+                }
+
+                super.onPageSelected(currPosition)
 
                 Log.d("D", "${wordList.size}")
-                if (position < wordList.size) {
+                if (currPosition < wordList.size) {
                     // Animate the record button back in, if necessary
 
-                    this@RecordingActivity.currentWord = wordList[position]
+                    this@RecordingActivity.currentWord = wordList[currPosition]
 
                     runOnUiThread(Runnable() {
                         val currFragment =
-                            supportFragmentManager.findFragmentByTag("f$position") as WordPromptFragment
+                            supportFragmentManager.findFragmentByTag("f$currPosition") as WordPromptFragment
                         currFragment.updateWordCount(countMap.getOrDefault(currentWord, 0))
                         countMap[currentWord] = countMap.getOrDefault(currentWord, 0)
                     })
 
-                    title = "${position + 1} of ${wordList.size}"
+                    title = "${currPosition + 1} of ${wordList.size}"
 
                     if (recordButtonDisabled) {
                         recordButton.isClickable = true
@@ -752,7 +712,7 @@ class RecordingActivity : AppCompatActivity() {
                     }
 
                     intermediateScreen = false
-                } else if (position == wordList.size) {
+                } else if (currPosition == wordList.size) {
                     title = "Save or continue?"
 
                     intermediateScreen = true
@@ -780,6 +740,8 @@ class RecordingActivity : AppCompatActivity() {
                         WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
 
                     currRecording.stop()
+
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
 
                     wordPager.isUserInputEnabled = false
 
@@ -824,9 +786,6 @@ class RecordingActivity : AppCompatActivity() {
         AndroidAssetUtil.initializeNativeAssetManager(this)
 
         eglManager = EglManager(null)
-        processor = FrameProcessor(this, eglManager.nativeContext,
-            BINARY_GRAPH_NAME, INPUT_VIDEO_STREAM_NAME, OUTPUT_VIDEO_STREAM_NAME)
-        processor.videoSurfaceOutput.setFlipY(true)
 
         initializeCamera()
     }

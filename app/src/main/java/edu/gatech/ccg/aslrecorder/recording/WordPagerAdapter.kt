@@ -24,6 +24,7 @@
  */
 package edu.gatech.ccg.aslrecorder.recording
 
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -45,14 +46,20 @@ class WordPagerAdapter(activity: AppCompatActivity, words: ArrayList<String>,
     var saveRecordingFragment: SaveRecordingFragment? = null
     var recordingListFragment: RecordingListFragment? = null
 
+    var currPosition: Int = 0
+
     override fun getItemCount() = wordList.size + 2
 
     override fun createFragment(position: Int): Fragment {
-        return if (position < wordList.size) {
-            val word = this.wordList[position]
+        Log.d("WordPagerAdapter", "Page changed to {$position}, {$wordList.size}")
+        if (currPosition != wordList.size + 1) {
+            currPosition = position
+        }
+        return if (currPosition < wordList.size) {
+            val word = this.wordList[currPosition]
             val result = WordPromptFragment(word, R.layout.word_prompt)
             result
-        } else if (position == wordList.size) {
+        } else if (currPosition == wordList.size) {
             saveRecordingFragment= SaveRecordingFragment(wordList,
                 sessionFiles, recordingActivity, R.layout.save_record)
             saveRecordingFragment!!
