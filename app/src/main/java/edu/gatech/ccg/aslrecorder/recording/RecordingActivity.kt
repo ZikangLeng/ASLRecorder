@@ -436,7 +436,7 @@ class RecordingActivity : AppCompatActivity() {
 
             countdownText = findViewById(R.id.timerLabel)
 
-            countdownTimer = object : CountDownTimer(9_000, 1000) {
+            countdownTimer = object : CountDownTimer(900_000, 1000) {
                 override fun onTick(p0: Long) {
                     val rawSeconds = (p0 / 1000).toInt() + 1
                     val minutes = padZeroes(rawSeconds / 60, 2)
