@@ -531,10 +531,18 @@ class RecordingActivity : AppCompatActivity() {
                             wordPagerAdapter.updateRecordingList()
 
                             runOnUiThread(Runnable() {
-                                val currFragment =
-                                    supportFragmentManager.findFragmentByTag("f"+wordPager.currentItem) as WordPromptFragment
-                                currFragment.updateWordCount(countMap.getOrDefault(currentWord, 0) + 1)
-                                countMap[currentWord] = countMap.getOrDefault(currentWord, 0) + 1
+                                if (currPosition < wordList.size) {
+                                    val currFragment =
+                                        supportFragmentManager.findFragmentByTag("f"+currPosition) as WordPromptFragment
+                                    currFragment.updateWordCount(
+                                        countMap.getOrDefault(
+                                            currentWord,
+                                            0
+                                        ) + 1
+                                    )
+                                    countMap[currentWord] =
+                                        countMap.getOrDefault(currentWord, 0) + 1
+                                }
                             })
                             // copyFileToDownloads(this@RecordingActivity, outputFile)
                             // outputFile = createFile(this@RecordingActivity)
@@ -548,6 +556,9 @@ class RecordingActivity : AppCompatActivity() {
                                 Log.d(TAG, "Requesting haptic feedback (R-)")
                                 recordButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             }
+
+                            wordPager.currentItem += 1
+
                         }
                         wordPager.isUserInputEnabled = true
                         recordButton.backgroundTintList = ColorStateList.valueOf(0xFFF80000.toInt())
@@ -644,25 +655,21 @@ class RecordingActivity : AppCompatActivity() {
         wordPager.adapter = WordPagerAdapter(this, wordList, sessionVideoFiles)
         wordPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                if (currPosition != wordList.size + 1) {
-                    currPosition = position
-                }
-
+                currPosition = wordPager.currentItem
                 super.onPageSelected(currPosition)
 
                 Log.d("D", "${wordList.size}")
+
+                runOnUiThread(Runnable() {
                 if (currPosition < wordList.size) {
                     // Animate the record button back in, if necessary
 
                     this@RecordingActivity.currentWord = wordList[currPosition]
 
-                    runOnUiThread(Runnable() {
-                        val currFragment =
-                            supportFragmentManager.findFragmentByTag("f$currPosition") as WordPromptFragment
-                        currFragment.updateWordCount(countMap.getOrDefault(currentWord, 0))
-                        countMap[currentWord] = countMap.getOrDefault(currentWord, 0)
-                    })
-
+                    val currFragment =
+                        supportFragmentManager.findFragmentByTag("f$currPosition") as WordPromptFragment
+                    currFragment.updateWordCount(countMap.getOrDefault(currentWord, 0))
+                    countMap[currentWord] = countMap.getOrDefault(currentWord, 0)
                     title = "${currPosition + 1} of ${wordList.size}"
 
                     if (recordButtonDisabled) {
@@ -732,8 +739,8 @@ class RecordingActivity : AppCompatActivity() {
                     filterMatrix.setSaturation(0.0f)
                     val filter = ColorMatrixColorFilter(filterMatrix)
                     recordingLightView.colorFilter = filter
-
-                }
+                    }
+                })
             }
         })
 
