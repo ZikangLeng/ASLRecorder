@@ -37,15 +37,13 @@ class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout
     var label: String = label
     lateinit var counter: TextView
 
-    private var TARGET_RECORDINGS: Int = 0
+    private var TARGET_RECORDINGS: Int = 1
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val textField = view.findViewById<TextView>(R.id.promptText)
         textField.text = label
-
-        TARGET_RECORDINGS = SplashScreenActivity.SplashScreenActivity.NUM_RECORDINGS
 
         counter = view.findViewById(R.id.recordingCounter)
         counter.text = "0 / $TARGET_RECORDINGS"
