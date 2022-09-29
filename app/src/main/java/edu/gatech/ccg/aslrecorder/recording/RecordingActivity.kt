@@ -247,25 +247,9 @@ class RecordingActivity : AppCompatActivity() {
 
     private var currPosition: Int = 0
 
-    // Mediapipe
-    private lateinit var imageCapture: ImageCapture
-    private lateinit var imageCaptureBuilder: ImageCapture.Builder
-
     private var permissions: Boolean = true
 
     private var intermediateScreen: Boolean = false
-
-    // {@link SurfaceTexture} where the camera-preview frames can be accessed.
-    private lateinit var previewFrameTexture: SurfaceTexture
-
-    // {@link SurfaceView} that displays the camera-preview frames processed by a MediaPipe graph.
-    private lateinit var previewDisplayView: SurfaceView
-
-    // Creates and manages an {@link EGLContext}.
-    private lateinit var eglManager: EglManager
-
-    // Handles camera access via the {@link CameraX} Jetpack support library.
-    private lateinit var cameraHelper: CameraXPreviewHelper
 
     val permission =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { map ->
@@ -302,11 +286,6 @@ class RecordingActivity : AppCompatActivity() {
          * The minimum recording time is one second.
          */
         private const val MIN_REQUIRED_RECORDING_TIME_MILLIS: Long = 1000L
-    }
-
-    init {
-        System.loadLibrary("mediapipe_jni");
-        System.loadLibrary("opencv_java3");
     }
 
     private fun startCamera() {
@@ -456,20 +435,6 @@ class RecordingActivity : AppCompatActivity() {
             countdownTimer.start()
 
         }, ContextCompat.getMainExecutor(this))
-
-        cameraHelper = CameraXPreviewHelper()
-        cameraHelper.setOnCameraStartedListener { surfaceTexture: SurfaceTexture? ->
-            if (surfaceTexture != null) {
-                previewFrameTexture = surfaceTexture
-            }
-            previewDisplayView.visibility = View.VISIBLE
-        }
-    }
-
-    private fun setupPreviewDisplayView() {
-        previewDisplayView.visibility = View.GONE
-        val viewGroup = findViewById<ViewGroup>(R.id.aspectRatioConstraint)
-        viewGroup.addView(previewDisplayView)
     }
 
 
@@ -778,14 +743,6 @@ class RecordingActivity : AppCompatActivity() {
         filterMatrix.setSaturation(0.0f)
         val filter = ColorMatrixColorFilter(filterMatrix)
         recordingLightView.colorFilter = filter
-
-        // Next view
-        previewDisplayView = SurfaceView(this)
-        setupPreviewDisplayView()
-
-        AndroidAssetUtil.initializeNativeAssetManager(this)
-
-        eglManager = EglManager(null)
 
         initializeCamera()
     }
