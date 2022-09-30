@@ -26,6 +26,11 @@ package edu.gatech.ccg.aslrecorder
 
 import android.util.Log
 import edu.gatech.ccg.aslrecorder.recording.RecordingEntryVideo
+import java.lang.Math.min
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
+import kotlin.collections.HashSet
 import kotlin.random.Random
 
 /**
@@ -257,4 +262,46 @@ fun convertRecordingListToString(sessionVideoFiles: HashMap<String, ArrayList<Re
     conversion.append("}")
 //    conversion.append("${sessionVideoFiles[0].file.absolutePath}")
     return conversion.toString()
+}
+
+fun <T> lowestCountRandomChoice(list: List<T>, numRecordings: List<Int>, count: Int,
+                             seed: Long? = null): ArrayList<T> {
+    Log.d("DEBUG", "weightedRandomChoice elements: [" +
+            list.joinToString(", ") + "]")
+
+    val result = ArrayList<T>()
+
+    var seed2 = seed
+    if (seed2 == null) {
+        seed2 = Random.nextLong()
+    }
+
+    val rand = Random(seed2)
+
+    if (count == 0 || list.isEmpty()) {
+        return result
+    }
+
+    var recordingCounts = numRecordings.zip(list)
+    var recordingCountsMap = TreeMap<Int, ArrayList<T>>()
+    for (signCount in recordingCounts) {
+        if (!recordingCountsMap.containsKey(signCount.first)) {
+            recordingCountsMap[signCount.first] = ArrayList<T>()
+        }
+        recordingCountsMap[signCount.first]?.add(signCount.second)
+    }
+
+    var countRemaining = count
+
+    for (entry in recordingCountsMap.entries.iterator()) {
+        if (countRemaining <= 0) {
+            break
+        }
+        val currSigns = entry.value
+        val numSelected = min(currSigns.size, countRemaining)
+        result.addAll(randomChoice(currSigns, numSelected))
+        countRemaining -= numSelected
+    }
+
+    return result
 }

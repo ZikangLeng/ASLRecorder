@@ -1,13 +1,11 @@
 package edu.gatech.ccg.aslrecorder.splash
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
-import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -19,11 +17,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import edu.gatech.ccg.aslrecorder.R
 import edu.gatech.ccg.aslrecorder.databinding.ActivitySplashRevisedBinding
+import edu.gatech.ccg.aslrecorder.lowestCountRandomChoice
 import edu.gatech.ccg.aslrecorder.recording.RecordingActivity
 import edu.gatech.ccg.aslrecorder.recording.WORDS_PER_SESSION
 import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity.SplashScreenActivity.NUM_RECORDINGS
-import edu.gatech.ccg.aslrecorder.weightedRandomChoice
-import kotlin.math.max
 import kotlin.math.min
 
 
@@ -59,6 +56,8 @@ class SplashScreenActivity: AppCompatActivity() {
     lateinit var weights: ArrayList<Float>
 
     lateinit var changeUID: TextView
+
+    lateinit var recordingCounts: ArrayList<Int>
 
     fun onChangeUIDClick(v: View) {
         setUidAndPermissions()
@@ -126,7 +125,7 @@ class SplashScreenActivity: AppCompatActivity() {
     }
 
     fun updateCounts() {
-        val recordingCounts = ArrayList<Int>()
+        recordingCounts = ArrayList<Int>()
         val statsShowableWords = ArrayList<Pair<Int, String>>()
         var totalRecordings = 0
 
@@ -203,10 +202,10 @@ class SplashScreenActivity: AppCompatActivity() {
     fun setupUI() {
         updateCounts()
 
-        getRandomWords(wordList, weights)
+        getRandomWords(wordList, recordingCounts)
         randomizeButton = findViewById(R.id.rerollButton)
         randomizeButton.setOnClickListener {
-            getRandomWords(wordList, weights)
+            getRandomWords(wordList, recordingCounts)
         }
 
         startRecordingButton = findViewById(R.id.startButton)
@@ -322,11 +321,14 @@ class SplashScreenActivity: AppCompatActivity() {
         setupUI()
     }
 
-    fun getRandomWords(wordList: ArrayList<String>, weights: ArrayList<Float>) {
-        words = weightedRandomChoice(wordList, weights, WORDS_PER_SESSION)
+    fun getRandomWords(wordList: ArrayList<String>, recordingCounts: ArrayList<Int>) {
+        words = lowestCountRandomChoice(wordList, recordingCounts, WORDS_PER_SESSION)
 
-        nextSessionWords = findViewById(R.id.recordingList)
-        nextSessionWords.text = words.joinToString("\n")
+        nextSessionWords = findViewById(R.id.recordingListColumn1)
+        nextSessionWords.text = words.subList(0, 10).joinToString("\n")
+
+        nextSessionWords = findViewById(R.id.recordingListColumn2)
+        nextSessionWords.text = words.subList(10, 20).joinToString("\n")
     }
 
     companion object {

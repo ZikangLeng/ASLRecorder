@@ -85,7 +85,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 
-const val WORDS_PER_SESSION = 5
+const val WORDS_PER_SESSION = 20
 
 data class RecordingEntryVideo(val file: File, val videoStart: Date, val signStart: Date, val signEnd: Date) {
     override fun toString(): String {
