@@ -24,6 +24,7 @@
  */
 package edu.gatech.ccg.aslrecorder.recording
 
+import android.content.res.AssetFileDescriptor
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
@@ -33,6 +34,7 @@ import android.view.View
 import android.widget.TextView
 import android.widget.VideoView
 import androidx.annotation.LayoutRes
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.DialogFragment
 import edu.gatech.ccg.aslrecorder.R
 import java.io.File
@@ -44,10 +46,13 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
     lateinit var mediaPlayer: MediaPlayer
 
     lateinit var recordingUri: Uri
+    lateinit var tutorialDesc: AssetFileDescriptor
 
     lateinit var word: String
 
-    lateinit var attemptNumber: String
+    var landscape = false
+
+    var attemptNumber: String = ""
 
     lateinit var timer: Timer
     lateinit var timerTask: TimerTask
@@ -57,17 +62,32 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val recordingPath = arguments?.getString("filename")!!
-        this.recordingUri = Uri.fromFile(File(recordingPath))
-
         val word = arguments?.getString("word")!!
         this.word = word
 
-        val attemptNumber = arguments?.getInt("recordingIndex")!! + 1
-        this.attemptNumber = "Attempt #$attemptNumber"
+        arguments?.getString("filename")?.let {
+            this.recordingUri = Uri.fromFile(File(it))
+        } ?: /* else */ run {
+            context?.resources?.assets?.openFd("videos/$word.mp4")?.let {
+                this.tutorialDesc = it
+            }
+        }
 
-        startTime = arguments?.getLong("startTime")!!
-        endTime = arguments?.getLong("endTime")!!
+        arguments?.getInt("recordingIndex")?.let {
+            this.attemptNumber = "Attempt #${it + 1}"
+        }
+
+        arguments?.getLong("startTime")?.let {
+            startTime = it
+        }
+
+        arguments?.getLong("endTime")?.let {
+            endTime = it
+        }
+
+        arguments?.getBoolean("landscape")?.let {
+            landscape = it
+        }
 
         timer = Timer()
     }
@@ -79,6 +99,10 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
         val videoView = view.findViewById<VideoView>(R.id.videoPreview)
         videoView.holder.addCallback(this)
 
+        if (landscape) {
+            (videoView.layoutParams as ConstraintLayout.LayoutParams).dimensionRatio = "16:9"
+        }
+
         val title = view.findViewById<TextView>(R.id.wordBeingSigned)
         title.text = this.word
 
@@ -88,7 +112,14 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         this.mediaPlayer = MediaPlayer().apply {
-            setDataSource(requireContext(), recordingUri)
+            if (this@VideoPreviewFragment::recordingUri.isInitialized) {
+                // Playing back the user's recording
+                setDataSource(requireContext(), recordingUri)
+            } else {
+                // Playing back a tutorial video (if the user presses the help button)
+                setDataSource(tutorialDesc)
+            }
+
             setSurface(holder.surface)
             setOnPreparedListener(this@VideoPreviewFragment)
             prepareAsync()
@@ -110,20 +141,24 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
             it.seekTo(startTime.toInt())
             it.start()
         }
-        var mTimerHandler: Handler = Handler()
 
-        timerTask = object : TimerTask() {
-            override fun run() {
-                mTimerHandler.post {
-                    if (mediaPlayer.isPlaying) {
-                        mediaPlayer.seekTo(startTime.toInt())
+        if (endTime > startTime) {
+            var mTimerHandler = Handler()
+
+            timerTask = object : TimerTask() {
+                override fun run() {
+                    mTimerHandler.post {
+                        if (mediaPlayer.isPlaying) {
+                            mediaPlayer.seekTo(startTime.toInt())
+                        }
                     }
                 }
             }
+
+            timer.schedule(timerTask,
+                Date(Calendar.getInstance().time.time + (endTime - startTime)),
+                endTime - startTime)
         }
-
-        timer.schedule(timerTask, Date(Calendar.getInstance().time.time + (endTime - startTime)), endTime - startTime)
-
     }
 
 
