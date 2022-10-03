@@ -55,13 +55,7 @@ class SplashScreenActivity: AppCompatActivity() {
     lateinit var wordList: ArrayList<String>
     lateinit var weights: ArrayList<Float>
 
-    lateinit var changeUID: TextView
-
     lateinit var recordingCounts: ArrayList<Int>
-
-    fun onChangeUIDClick(v: View) {
-        setUidAndPermissions()
-    }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(baseContext, it) ==
@@ -303,8 +297,6 @@ class SplashScreenActivity: AppCompatActivity() {
         } else {
             setUidAndPermissions()
         }
-
-        changeUID = findViewById(R.id.changeUID)
 
         wordList = ArrayList()
         for (category in WordDefinitions.values()) {
