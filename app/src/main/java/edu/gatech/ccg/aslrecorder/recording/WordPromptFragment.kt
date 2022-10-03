@@ -36,7 +36,6 @@ import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity
 class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout) {
 
     var label: String = label
-    lateinit var counter: TextView
 
     private var TARGET_RECORDINGS: Int = 1
 
@@ -45,9 +44,6 @@ class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout
 
         val textField = view.findViewById<TextView>(R.id.promptText)
         textField.text = label
-
-        counter = view.findViewById(R.id.recordingCounter)
-        counter.text = "0 / $TARGET_RECORDINGS"
 
 //        counter = view.findViewById(R.id.recordingCounter)
 //        counter.text = "0 / $TARGET_RECORDINGS"
@@ -80,7 +76,7 @@ class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout
     }
 
     fun updateWordCount(count: Int) {
-        counter.text = "$count / $TARGET_RECORDINGS"
+        // Do nothing; only the latest recording is accepted.
     }
 
 }
