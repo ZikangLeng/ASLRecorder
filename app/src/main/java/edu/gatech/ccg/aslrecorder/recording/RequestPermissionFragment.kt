@@ -50,9 +50,6 @@ class RequestPermissionFragment(label: String, @LayoutRes layout: Int): Fragment
         textField.text = label
 
         TARGET_RECORDINGS = SplashScreenActivity.SplashScreenActivity.NUM_RECORDINGS
-
-        counter = view.findViewById(R.id.recordingCounter)
-        counter.text = "0 / $TARGET_RECORDINGS"
     }
 
     fun updateWordCount(count: Int) {

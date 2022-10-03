@@ -26,6 +26,7 @@ package edu.gatech.ccg.aslrecorder.recording
 
 import android.os.Bundle
 import android.view.View
+import android.widget.Button
 import android.widget.TextView
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
@@ -47,6 +48,35 @@ class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout
 
         counter = view.findViewById(R.id.recordingCounter)
         counter.text = "0 / $TARGET_RECORDINGS"
+
+//        counter = view.findViewById(R.id.recordingCounter)
+//        counter.text = "0 / $TARGET_RECORDINGS"
+
+        val helpButton: Button = view.findViewById(R.id.helpButton)
+        // Is there a video for this recording?
+        try {
+            val videoTutorial = context?.resources?.assets?.openFd("videos/$label.mp4")
+
+            if (videoTutorial != null) {
+                helpButton.setOnClickListener {
+                    val bundle = Bundle()
+                    bundle.putString("word", label)
+                    bundle.putBoolean("landscape", true)
+
+                    val previewFragment = VideoPreviewFragment(R.layout.recording_preview)
+                    previewFragment.arguments = bundle
+
+                    val transaction = requireActivity().supportFragmentManager.beginTransaction()
+                    transaction.add(previewFragment, "videoPreview")
+                    transaction.commit()
+                }
+            } else {
+                helpButton.isEnabled = false
+            }
+        } catch (e: Exception) {
+            // No video available, so disable the button
+            helpButton.isEnabled = false
+        }
     }
 
     fun updateWordCount(count: Int) {

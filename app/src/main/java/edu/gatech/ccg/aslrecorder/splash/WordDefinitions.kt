@@ -40,4 +40,5 @@ enum class WordDefinitions(val resourceId: Int, val title: String, val desc: Str
     HELPER_WORDS(R.array.helper_words, "Helper words",
         "Prepositions, modifier words, etc."),
     PRONOUNS(R.array.pronouns, "Pronouns", "Signs for pronouns")
+    // ALL_WORDS(R.array.full_signs, "All signs", "All signs")
 }
