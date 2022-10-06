@@ -49,7 +49,7 @@ class RecordingListAdapter(
     RecyclerView.Adapter<RecordingListAdapter.RecordingListItem>() {
 
     val words = wordList
-    val recordings = sessionFiles
+    val recordings = sessionFiles.mapValues { it.value.subList(it.value.size - 1, it.value.size) }
     val activity = WeakReference(activity)
 
     val breakpoints = ArrayList<Int>()
