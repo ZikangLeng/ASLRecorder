@@ -670,9 +670,6 @@ class RecordingActivity : AppCompatActivity() {
 
                     this@RecordingActivity.currentWord = wordList[currPosition]
 
-                    val currFragment =
-                        supportFragmentManager.findFragmentByTag("f$currPosition") as WordPromptFragment
-                    currFragment.updateWordCount(countMap.getOrDefault(currentWord, 0))
                     countMap[currentWord] = countMap.getOrDefault(currentWord, 0)
                     title = "${currPosition + 1} of ${wordList.size}"
 
