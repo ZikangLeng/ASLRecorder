@@ -526,24 +526,14 @@ class RecordingActivity : AppCompatActivity() {
                             Log.d("VideoPlayback", MediaStore.Video.Media.getContentUri("external").toString())
                             val outputFile = File("/storage/emulated/0/Movies/$filename.mp4")
                             if (recordingList.size == 0) {
-                                recordingList.add(RecordingEntryVideo(outputFile, videoStartTime, currStartTime, Calendar.getInstance().time))
                                 runOnUiThread(Runnable() {
                                     if (currPosition < wordList.size) {
-                                        val currFragment =
-                                            supportFragmentManager.findFragmentByTag("f"+currPosition) as WordPromptFragment
-                                        currFragment.updateWordCount(
-                                            countMap.getOrDefault(
-                                                currentWord,
-                                                0
-                                            ) + 1
-                                        )
                                         countMap[currentWord] =
                                             countMap.getOrDefault(currentWord, 0) + 1
                                     }
                                 })
-                            } else {
-                                recordingList[0] = RecordingEntryVideo(outputFile, videoStartTime, currStartTime, Calendar.getInstance().time)
                             }
+                            recordingList.add(RecordingEntryVideo(outputFile, videoStartTime, currStartTime, Calendar.getInstance().time))
 
                             val wordPagerAdapter = wordPager.adapter as WordPagerAdapter
                             wordPagerAdapter.updateRecordingList()

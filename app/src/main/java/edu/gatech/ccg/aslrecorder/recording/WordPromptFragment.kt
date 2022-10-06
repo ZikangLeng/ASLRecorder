@@ -75,8 +75,4 @@ class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout
         }
     }
 
-    fun updateWordCount(count: Int) {
-        // Do nothing; only the latest recording is accepted.
-    }
-
 }
