@@ -64,7 +64,7 @@ class RecordingListAdapter(
         breakpoints.add(0)
         var nextIndex = 0
         for (word in words) {
-            nextIndex += 1 + (recordings[word]?.size ?: 0)
+            nextIndex += 1 + (if (recordings.containsKey(word) && recordings[word]!!.isNotEmpty() && recordings[word]!![recordings[word]!!.size - 1].isValid) 1 else 0)
             breakpoints.add(nextIndex)
         }
 
@@ -95,7 +95,7 @@ class RecordingListAdapter(
             // TODO: Show recording preview when user taps the title
             val deleteButton = itemView.findViewById<ImageButton>(R.id.deleteRecording)
             deleteButton.setOnClickListener {
-                activity.get()?.deleteRecording(word, recordingIndex)
+                activity.get()?.deleteMostRecentRecording(word)
 
                 // NOTE: This was previously notifyItemRemoved as that is more
                 // efficient, but it would cause crashes when not deleting the very latest

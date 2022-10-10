@@ -87,10 +87,11 @@ import kotlin.coroutines.resumeWithException
 
 const val WORDS_PER_SESSION = 20
 
-data class RecordingEntryVideo(val file: File, val videoStart: Date, val signStart: Date, val signEnd: Date) {
+data class RecordingEntryVideo(val file: File, val videoStart: Date, val signStart: Date, val signEnd: Date, var isValid: Boolean) {
     override fun toString(): String {
         val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss.SSS", Locale.US)
-        return "(file=${file.absolutePath}, videoStart=${sdf.format(videoStart)}, signStart=${sdf.format(signStart)}, signEnd=${sdf.format(signEnd)})"}
+        val isValidPython = if (isValid) "True" else "False"
+        return "(file=${file.absolutePath}, videoStart=${sdf.format(videoStart)}, signStart=${sdf.format(signStart)}, signEnd=${sdf.format(signEnd)}, isValid=${isValidPython})"}
 }
 
 /**
@@ -532,8 +533,10 @@ class RecordingActivity : AppCompatActivity() {
                                             countMap.getOrDefault(currentWord, 0) + 1
                                     }
                                 })
+                            } else {
+                                recordingList[recordingList.size - 1].isValid = false
                             }
-                            recordingList.add(RecordingEntryVideo(outputFile, videoStartTime, currStartTime, Calendar.getInstance().time))
+                            recordingList.add(RecordingEntryVideo(outputFile, videoStartTime, currStartTime, Calendar.getInstance().time, true))
 
                             val wordPagerAdapter = wordPager.adapter as WordPagerAdapter
                             wordPagerAdapter.updateRecordingList()
@@ -763,8 +766,11 @@ class RecordingActivity : AppCompatActivity() {
         wordPager.currentItem = index
     }
 
-    fun deleteRecording(word: String, index: Int) {
-        sessionVideoFiles[word]?.removeAt(index)
+    fun deleteMostRecentRecording(word: String) {
+        // Since only the last recording is shown, the last recording should be deleted
+        if (sessionVideoFiles.containsKey(word)) {
+            sessionVideoFiles[word]?.get(sessionVideoFiles[word]!!.size - 1)?.isValid = false
+        }
     }
 
     fun concludeRecordingSession() {
