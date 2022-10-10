@@ -779,7 +779,9 @@ class RecordingActivity : AppCompatActivity() {
             for (entry in sessionVideoFiles) {
                 val key = "RECORDING_COUNT_${entry.key}"
                 val recordingCount = prefs.getInt(key, 0);
-                putInt(key, recordingCount + entry.value.size)
+                if (entry.value.isNotEmpty() and entry.value.last().isValid) {
+                    putInt(key, recordingCount + 1)
+                }
             }
             commit()
         }
