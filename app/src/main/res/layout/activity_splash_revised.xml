@@ -36,18 +36,6 @@
         app:layout_constraintTop_toTopOf="@+id/uidLabel" />
 
     <TextView
-        android:id="@+id/changeUID"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
-        android:text="@string/change_UID"
-        android:textStyle="bold"
-        android:onClick="onChangeUIDClick"
-        android:clickable="true"
-        app:layout_constraintStart_toEndOf="@+id/uidBox"
-        app:layout_constraintTop_toTopOf="@+id/uidLabel" />
-
-    <TextView
         android:id="@+id/statisticsHeader"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
