@@ -1,6 +1,8 @@
 package edu.gatech.ccg.aslrecorder.splash
 
 import android.Manifest
+import android.accounts.AccountManager
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -62,6 +64,23 @@ class SplashScreenActivity: AppCompatActivity() {
                 PackageManager.PERMISSION_GRANTED
     }
 
+    var totalRecordings = 0
+
+    val requestUsernamePermissions = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+            map ->
+        if (map[Manifest.permission.GET_ACCOUNTS] == true && map[Manifest.permission.READ_CONTACTS] == true) {
+            // Permission is granted.
+            // You can use the API that requires the permission.
+        } else {
+            // Permission is not granted.
+            val text = "Cannot assign UID since permissions not granted"
+            val toast = Toast.makeText(this, text, Toast.LENGTH_SHORT)
+            toast.show()
+        }
+    }
+
     val requestAllPermissions =
         registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
@@ -79,6 +98,7 @@ class SplashScreenActivity: AppCompatActivity() {
                     putStringArrayListExtra("WORDS", words)
                     putExtra("UID", uid)
                     putExtra("MAP", countMap)
+                    putExtra("TOTAL_RECORDINGS", totalRecordings)
                 }
 
                 startActivity(intent)
@@ -91,37 +111,37 @@ class SplashScreenActivity: AppCompatActivity() {
         }
 
     private fun setUidAndPermissions() {
-            val dialog = this.let {
-                val builder = AlertDialog.Builder(it)
-                builder.setTitle("Set UID")
-                builder.setMessage("Please enter the UID that you were assigned.")
+        val dialog = this.let {
+            val builder = AlertDialog.Builder(it)
+            builder.setTitle("Set UID")
+            builder.setMessage("Please enter the UID that you were assigned.")
 
-                val input = EditText(builder.context)
-                builder.setView(input)
+            val input = EditText(builder.context)
+            builder.setView(input)
 
-                builder.setPositiveButton("OK") {
-                        dialog, _ ->
-                    this.uid = input.text.toString()
-                    uidBox.text = this.uid
-                    with (globalPrefs.edit()) {
-                        putString("UID", uid)
-                        apply()
-                    }
-
-                    dialog.dismiss()
+            builder.setPositiveButton("OK") {
+                    dialog, _ ->
+                this.uid = input.text.toString()
+                uidBox.text = this.uid
+                with (globalPrefs.edit()) {
+                    putString("UID", uid)
+                    apply()
                 }
 
-                builder.create()
+                dialog.dismiss()
             }
 
-            dialog.setCancelable(false)
-            dialog.show()
+            builder.create()
+        }
+
+        dialog.setCancelable(false)
+        dialog.show()
     }
 
     fun updateCounts() {
         recordingCounts = ArrayList<Int>()
         val statsShowableWords = ArrayList<Pair<Int, String>>()
-        var totalRecordings = 0
+        totalRecordings = 0
 
         for (word in wordList) {
             val count = localPrefs.getInt("RECORDING_COUNT_$word", 0)
@@ -222,6 +242,7 @@ class SplashScreenActivity: AppCompatActivity() {
                         putStringArrayListExtra("WORDS", words)
                         putExtra("UID", uid)
                         putExtra("MAP", countMap)
+                        putExtra("TOTAL_RECORDINGS", totalRecordings)
                     }
 
                     startActivity(intent)
@@ -293,10 +314,24 @@ class SplashScreenActivity: AppCompatActivity() {
 
         if (globalPrefs.getString("UID", "")!!.isNotEmpty()) {
             this.uid = globalPrefs.getString("UID", "")!!
-            uidBox.text = this.uid
         } else {
-            setUidAndPermissions()
+            requestUsernamePermissions.launch(arrayOf(Manifest.permission.GET_ACCOUNTS, Manifest.permission.READ_CONTACTS))
+            val manager = AccountManager.get(this)
+            val accountList = manager.getAccountsByType("com.google")
+            Log.d("Account List", accountList.toString())
+            if (accountList.isNotEmpty()) {
+                this.uid = accountList[0].name.split("@")[0]
+                with(globalPrefs.edit()) {
+                    putString("UID", uid)
+                    apply()
+                }
+            } else {
+                this.uid = "Permissions not accepted"
+                Log.d("Account not found", "womp womp")
+            }
         }
+
+        uidBox.text = this.uid
 
         wordList = ArrayList()
         for (category in WordDefinitions.values()) {
