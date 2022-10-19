@@ -65,24 +65,17 @@ import com.google.mediapipe.components.ExternalTextureConverter
 import com.google.mediapipe.components.FrameProcessor
 import com.google.mediapipe.framework.AndroidAssetUtil
 import com.google.mediapipe.glutil.EglManager
+import edu.gatech.ccg.aslrecorder.*
 import edu.gatech.ccg.aslrecorder.R
-import edu.gatech.ccg.aslrecorder.convertRecordingListToString
 import edu.gatech.ccg.aslrecorder.databinding.ActivityRecordBinding
-import edu.gatech.ccg.aslrecorder.padZeroes
-import edu.gatech.ccg.aslrecorder.randomChoice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
-import java.io.BufferedInputStream
 import java.io.File
-import java.io.FileInputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 
 const val WORDS_PER_SESSION = 20
@@ -275,24 +268,12 @@ class RecordingActivity : AppCompatActivity() {
      */
     companion object {
         private val TAG = RecordingActivity::class.java.simpleName
-
-        /**
-         * Record video at 15 Mbps. At 1080p30, this level of detail should be more than high
-         * enough.
-         */
-        private const val RECORDER_VIDEO_BITRATE: Int = 15_000_000
-
-
-        /**
-         * The minimum recording time is one second.
-         */
-        private const val MIN_REQUIRED_RECORDING_TIME_MILLIS: Long = 1000L
     }
 
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
-        cameraProviderFuture.addListener(Runnable {
+        cameraProviderFuture.addListener({
             // Used to bind the lifecycle of cameras to the lifecycle owner
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
@@ -303,7 +284,7 @@ class RecordingActivity : AppCompatActivity() {
                     it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
                 }
 
-            binding.viewFinder.implementationMode = PreviewView.ImplementationMode.COMPATIBLE;
+            binding.viewFinder.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
 
             // Select front camera as a default
             val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
@@ -449,8 +430,6 @@ class RecordingActivity : AppCompatActivity() {
          * First, check camera permissions. If the user has not granted permission to use the
          * camera, give a prompt asking them to grant that permission in the Settings app, then
          * relaunch the app.
-         *
-         * TODO: Streamline this flow so that users don't need to restart the app at all.
          */
         if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
             || checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
@@ -510,7 +489,6 @@ class RecordingActivity : AppCompatActivity() {
                      * User releases the record button:
                      */
                     MotionEvent.ACTION_UP -> lifecycleScope.launch(Dispatchers.IO) {
-
                         Log.d(TAG, "Record button up")
 
                         buttonLock.withLock {
@@ -527,25 +505,24 @@ class RecordingActivity : AppCompatActivity() {
                             Log.d("VideoPlayback", MediaStore.Video.Media.getContentUri("external").toString())
                             val outputFile = File("/storage/emulated/0/Movies/$filename.mp4")
                             if (recordingList.size == 0) {
-                                runOnUiThread(Runnable() {
+                                runOnUiThread {
                                     if (currPosition < wordList.size) {
                                         countMap[currentWord] =
                                             countMap.getOrDefault(currentWord, 0) + 1
                                     }
-                                })
+                                }
                             } else {
                                 recordingList[recordingList.size - 1].isValid = false
                             }
-                            recordingList.add(RecordingEntryVideo(outputFile, videoStartTime, currStartTime, Calendar.getInstance().time, true))
+
+                            recordingList.add(RecordingEntryVideo(
+                                outputFile, videoStartTime, currStartTime,
+                                Calendar.getInstance().time, true
+                            ))
 
                             val wordPagerAdapter = wordPager.adapter as WordPagerAdapter
                             wordPagerAdapter.updateRecordingList()
 
-                            // copyFileToDownloads(this@RecordingActivity, outputFile)
-                            // outputFile = createFile(this@RecordingActivity)
-
-                            // Send a haptic feedback on recording end
-                            // delay(100)
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                                 Log.d(TAG, "Requesting haptic feedback (R+)")
                                 recordButton.performHapticFeedback(HapticFeedbackConstants.REJECT)
@@ -572,17 +549,6 @@ class RecordingActivity : AppCompatActivity() {
                 true
             }
         }
-    }
-
-    override fun onStop() {
-        super.onStop()
-//        try {
-////            session.close()
-//            camera.close()
-//            cameraThread.quitSafely()
-//        } catch (exc: Throwable) {
-//            Log.e(TAG, "Error closing camera", exc)
-//        }
     }
 
     override fun onDestroy() {
@@ -657,88 +623,88 @@ class RecordingActivity : AppCompatActivity() {
 
                 Log.d("D", "${wordList.size}")
 
-                runOnUiThread(Runnable() {
-                if (currPosition < wordList.size) {
-                    // Animate the record button back in, if necessary
+                runOnUiThread {
+                    if (currPosition < wordList.size) {
+                        // Animate the record button back in, if necessary
 
-                    this@RecordingActivity.currentWord = wordList[currPosition]
+                        this@RecordingActivity.currentWord = wordList[currPosition]
 
-                    countMap[currentWord] = countMap.getOrDefault(currentWord, 0)
-                    title = "${currPosition + 1} of ${wordList.size}"
+                        countMap[currentWord] = countMap.getOrDefault(currentWord, 0)
+                        title = "${currPosition + 1} of ${wordList.size}"
 
-                    if (recordButtonDisabled) {
-                        recordButton.isClickable = true
-                        recordButton.isFocusable = true
-                        recordButtonDisabled = false
+                        if (recordButtonDisabled) {
+                            recordButton.isClickable = true
+                            recordButton.isFocusable = true
+                            recordButtonDisabled = false
+
+                            recordButton.animate().apply {
+                                alpha(1.0f)
+                                duration = 250
+                            }.start()
+                        }
+
+                        intermediateScreen = false
+                    } else if (currPosition == wordList.size) {
+                        title = "Save or continue?"
+
+                        intermediateScreen = true
+
+                        recordButton.isClickable = false
+                        recordButton.isFocusable = false
+                        recordButtonDisabled = true
 
                         recordButton.animate().apply {
-                            alpha(1.0f)
+                            alpha(0.0f)
                             duration = 250
                         }.start()
+
+                    } else {
+                        // Hide record button and move the slider to the front (so users can't
+                        // accidentally press record)
+                        Log.d(
+                            TAG, "Recording stopped. Check " +
+                                    this@RecordingActivity.getExternalFilesDir(null)?.absolutePath
+                        )
+
+                        intermediateScreen = false
+
+                        window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+
+                        currRecording.stop()
+
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+
+                        wordPager.isUserInputEnabled = false
+
+                        countdownText.animate().apply {
+                            alpha(0.0f)
+                            duration = 250
+                        }.start()
+
+                        countdownTimer.cancel()
+
+                        recordButton.animate().apply {
+                            alpha(0.0f)
+                            duration = 250
+                        }.start()
+
+                        recordButton.isClickable = false
+                        recordButton.isFocusable = false
+                        recordButtonDisabled = true
+
+                        title = "Session summary"
+
+                        val filterMatrix = ColorMatrix()
+                        filterMatrix.setSaturation(0.0f)
+                        val filter = ColorMatrixColorFilter(filterMatrix)
+                        recordingLightView.colorFilter = filter
                     }
-
-                    intermediateScreen = false
-                } else if (currPosition == wordList.size) {
-                    title = "Save or continue?"
-
-                    intermediateScreen = true
-
-                    recordButton.isClickable = false
-                    recordButton.isFocusable = false
-                    recordButtonDisabled = true
-
-                    recordButton.animate().apply {
-                        alpha(0.0f)
-                        duration = 250
-                    }.start()
-
-                } else {
-                    // Hide record button and move the slider to the front (so users can't
-                    // accidentally press record)
-                    Log.d(
-                        TAG, "Recording stopped. Check " +
-                                this@RecordingActivity.getExternalFilesDir(null)?.absolutePath
-                    )
-
-                    intermediateScreen = false
-
-                    window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
-
-                    currRecording.stop()
-
-                    window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
-
-                    wordPager.isUserInputEnabled = false
-
-                    countdownText.animate().apply {
-                        alpha(0.0f)
-                        duration = 250
-                    }.start()
-
-                    countdownTimer.cancel()
-
-                    recordButton.animate().apply {
-                        alpha(0.0f)
-                        duration = 250
-                    }.start()
-
-                    recordButton.isClickable = false
-                    recordButton.isFocusable = false
-                    recordButtonDisabled = true
-
-                    title = "Session summary"
-
-                    val filterMatrix = ColorMatrix()
-                    filterMatrix.setSaturation(0.0f)
-                    val filter = ColorMatrixColorFilter(filterMatrix)
-                    recordingLightView.colorFilter = filter
-                    }
-                })
+                }
             }
         })
 
-        recordingLightView = findViewById<ImageView>(R.id.videoRecordingLight3)
+        recordingLightView = findViewById(R.id.videoRecordingLight3)
 
         val filterMatrix = ColorMatrix()
         filterMatrix.setSaturation(0.0f)
@@ -786,50 +752,38 @@ class RecordingActivity : AppCompatActivity() {
             commit()
         }
         createTimestampFileAllinOne(sessionVideoFiles)
+        sendConfirmationEmail()
         finish()
     }
 
+    fun sendConfirmationEmail() {
+        val userId = this.UID
 
-    /**
-     * THE CODE BELOW IS COPIED FROM Rubén Viguera at StackOverflow (CC-BY-SA 4.0),
-     * with some modifications.
-     * See https://stackoverflow.com/a/64357198/13206041.
-     */
-    private val DOWNLOAD_DIR = Environment
-        .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-
-    fun copyFileToDownloads(context: Context, videoFile: File): Uri? {
-        val resolver = context.contentResolver
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val contentValues = ContentValues().apply {
-                put(MediaStore.Video.VideoColumns.DISPLAY_NAME, videoFile.name)
-                put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
-                put(MediaStore.MediaColumns.SIZE, videoFile.length())
-            }
-            resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
-
-        } else {
-            val authority = "${context.packageName}.provider"
-            // Modify the line below if we add support for a subfolder within Downloads
-            val destinyFile = File(DOWNLOAD_DIR, videoFile.name)
-            FileProvider.getUriForFile(context, authority, destinyFile)
-        }?.also { downloadedUri ->
-            resolver.openOutputStream(downloadedUri).use { outputStream ->
-                val brr = ByteArray(1024)
-                var len: Int
-                val bufferedInputStream = BufferedInputStream(FileInputStream(videoFile.absoluteFile))
-                while ((bufferedInputStream.read(brr, 0, brr.size).also { len = it }) != -1) {
-                    outputStream?.write(brr, 0, len)
-                }
-                outputStream?.flush()
-                bufferedInputStream.close()
+        var wordList = ArrayList<String>()
+        for (entry in sessionVideoFiles) {
+            if (entry.value.isNotEmpty()) {
+                wordList.add(entry.key)
             }
         }
-    }
 
-    /**
-     * End borrowed code from Rubén Viguera.
-     */
+        val outputFile = File("/storage/emulated/0/Movies/$filename.mp4")
+
+        val fileDigest = outputFile.md5()
+
+        val subject = "Recording confirmation for $userId"
+        val body = "The user '$userId' recorded the following ${wordList.size} word(s) to the " +
+                "file $filename.mp4 (MD5 = $fileDigest): ${wordList.joinToString(", ")}"
+
+        val emailTask = Thread {
+            kotlin.run {
+                Log.d("EMAIL", "Running thread to send email...")
+                sendEmail("gtsignstudy.confirmation@gmail.com",
+                    listOf("gtsignstudy@gmail.com"), subject, body)
+            }
+        }
+
+        emailTask.start()
+    }
 
     fun createTimestampFileAllinOne(sampleVideos: HashMap<String, ArrayList<RecordingEntryVideo>>) {
         // resort sampleVideos around files
