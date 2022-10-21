@@ -54,7 +54,6 @@ class RecordingListFragment(wordList: ArrayList<String>,
     lateinit var saveButton: Button
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        // super.onViewCreated(view, savedInstanceState)
         Log.d("HELLO", "onViewCreated!")
         val scrollView = view.findViewById<RecyclerView>(R.id.recordingList)
         scrollView.layoutManager = LinearLayoutManager(this.context)
@@ -86,14 +85,6 @@ class RecordingListFragment(wordList: ArrayList<String>,
 
     fun determineExitButtonAvailability() {
         this.saveButton.isEnabled = true
-//        for (entry in files) {
-//            if (entry.value.size > 0) {
-//                this.saveButton.isEnabled = true
-//                return
-//            }
-//        }
-//
-//        this.saveButton.isEnabled = false
     }
 
 

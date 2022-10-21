@@ -24,8 +24,6 @@
  */
 package edu.gatech.ccg.aslrecorder.recording
 
-//import kotlinx.android.synthetic.main.activity_record.*
-
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ContentValues
@@ -34,8 +32,6 @@ import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.*
 import android.hardware.camera2.CameraDevice
-import android.hardware.camera2.CameraManager
-import android.hardware.camera2.CaptureRequest
 import android.media.ExifInterface
 import android.media.ExifInterface.TAG_IMAGE_DESCRIPTION
 import android.media.ThumbnailUtils
@@ -49,7 +45,6 @@ import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
@@ -60,11 +55,6 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.mediapipe.components.CameraXPreviewHelper
-import com.google.mediapipe.components.ExternalTextureConverter
-import com.google.mediapipe.components.FrameProcessor
-import com.google.mediapipe.framework.AndroidAssetUtil
-import com.google.mediapipe.glutil.EglManager
 import edu.gatech.ccg.aslrecorder.R
 import edu.gatech.ccg.aslrecorder.convertRecordingListToString
 import edu.gatech.ccg.aslrecorder.databinding.ActivityRecordBinding
@@ -72,7 +62,6 @@ import edu.gatech.ccg.aslrecorder.padZeroes
 import edu.gatech.ccg.aslrecorder.randomChoice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
@@ -81,8 +70,6 @@ import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 
 const val WORDS_PER_SESSION = 20
@@ -102,10 +89,6 @@ data class RecordingEntryVideo(val file: File, val videoStart: Date, val signSta
  * @version 1.1.0
  */
 class RecordingActivity : AppCompatActivity() {
-
-    private val BINARY_GRAPH_NAME = "face_detection_mobile_gpu.binarypb"
-    private val INPUT_VIDEO_STREAM_NAME = "input_video"
-    private val OUTPUT_VIDEO_STREAM_NAME = "output_video"
 
     private lateinit var context: Context
 
@@ -261,10 +244,8 @@ class RecordingActivity : AppCompatActivity() {
             map.entries.forEach { entry ->
                 when (entry.key) {
                     Manifest.permission.CAMERA ->
-//                        mBinding.iconCameraPermission.isEnabled = entry.value
                         permissions = permissions && entry.value
                     Manifest.permission.WRITE_EXTERNAL_STORAGE ->
-//                        mBinding.iconMicrophonePermission.isEnabled = entry.value
                         permissions = permissions && entry.value
                 }
             }
@@ -541,11 +522,6 @@ class RecordingActivity : AppCompatActivity() {
                             val wordPagerAdapter = wordPager.adapter as WordPagerAdapter
                             wordPagerAdapter.updateRecordingList()
 
-                            // copyFileToDownloads(this@RecordingActivity, outputFile)
-                            // outputFile = createFile(this@RecordingActivity)
-
-                            // Send a haptic feedback on recording end
-                            // delay(100)
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                                 Log.d(TAG, "Requesting haptic feedback (R+)")
                                 recordButton.performHapticFeedback(HapticFeedbackConstants.REJECT)
@@ -572,17 +548,6 @@ class RecordingActivity : AppCompatActivity() {
                 true
             }
         }
-    }
-
-    override fun onStop() {
-        super.onStop()
-//        try {
-////            session.close()
-//            camera.close()
-//            cameraThread.quitSafely()
-//        } catch (exc: Throwable) {
-//            Log.e(TAG, "Error closing camera", exc)
-//        }
     }
 
     override fun onDestroy() {

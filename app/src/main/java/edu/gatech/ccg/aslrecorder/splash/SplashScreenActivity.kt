@@ -2,13 +2,11 @@ package edu.gatech.ccg.aslrecorder.splash
 
 import android.Manifest
 import android.accounts.AccountManager
-import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -59,11 +57,6 @@ class SplashScreenActivity: AppCompatActivity() {
 
     lateinit var recordingCounts: ArrayList<Int>
 
-    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
-        ContextCompat.checkSelfPermission(baseContext, it) ==
-                PackageManager.PERMISSION_GRANTED
-    }
-
     var totalRecordings = 0
 
     val requestUsernamePermissions = registerForActivityResult(
@@ -109,34 +102,6 @@ class SplashScreenActivity: AppCompatActivity() {
                 toast.show()
             }
         }
-
-    private fun setUidAndPermissions() {
-        val dialog = this.let {
-            val builder = AlertDialog.Builder(it)
-            builder.setTitle("Set UID")
-            builder.setMessage("Please enter the UID that you were assigned.")
-
-            val input = EditText(builder.context)
-            builder.setView(input)
-
-            builder.setPositiveButton("OK") {
-                    dialog, _ ->
-                this.uid = input.text.toString()
-                uidBox.text = this.uid
-                with (globalPrefs.edit()) {
-                    putString("UID", uid)
-                    apply()
-                }
-
-                dialog.dismiss()
-            }
-
-            builder.create()
-        }
-
-        dialog.setCancelable(false)
-        dialog.show()
-    }
 
     fun updateCounts() {
         recordingCounts = ArrayList<Int>()

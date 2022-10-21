@@ -31,22 +31,16 @@ import android.widget.TextView
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
 import edu.gatech.ccg.aslrecorder.R
-import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity
 
 class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout) {
 
     var label: String = label
-
-    private var TARGET_RECORDINGS: Int = 1
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val textField = view.findViewById<TextView>(R.id.promptText)
         textField.text = label
-
-//        counter = view.findViewById(R.id.recordingCounter)
-//        counter.text = "0 / $TARGET_RECORDINGS"
 
         val helpButton: Button = view.findViewById(R.id.helpButton)
         // Is there a video for this recording?

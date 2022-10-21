@@ -41,8 +41,6 @@ class RequestPermissionFragment(label: String, @LayoutRes layout: Int): Fragment
 
     private var TARGET_RECORDINGS: Int = 0
 
-//    lateinit var button: Button
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
