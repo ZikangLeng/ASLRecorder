@@ -274,7 +274,10 @@ class RecordingActivity : AppCompatActivity() {
                     it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
                 }
 
-            binding.viewFinder.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+            binding.viewFinder.also {
+                it.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                it.scaleType = PreviewView.ScaleType.FIT_CENTER
+            }
 
             // Select front camera as a default
             val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
@@ -294,7 +297,7 @@ class RecordingActivity : AppCompatActivity() {
             // video recording
 
             val qualitySelector = QualitySelector.fromOrderedList(
-                listOf(Quality.UHD, Quality.FHD, Quality.HD, Quality.SD))
+                listOf(Quality.HIGHEST, Quality.UHD, Quality.FHD, Quality.HD, Quality.SD))
 
             val recorder = Recorder.Builder()
                 .setExecutor(cameraExecutor).setQualitySelector(qualitySelector)
