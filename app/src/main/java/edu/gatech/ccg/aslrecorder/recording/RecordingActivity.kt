@@ -274,6 +274,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
     companion object {
         private val TAG = RecordingActivity::class.java.simpleName
         private val TARGET_RECORDINGS_PER_WORD = 20
+        private val APP_VERSION = "1.0"
     }
 
     @SuppressLint("UnsafeOptInUsageError", "RestrictedApi")
@@ -849,6 +850,8 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
 
             body += ": ${formatTime(startMillis)} - ${formatTime(endMillis)}\n"
         }
+        
+        body += "\n\nApp version $APP_VERSION"
 
         val emailTask = Thread {
             kotlin.run {
