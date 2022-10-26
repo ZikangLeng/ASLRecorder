@@ -32,6 +32,7 @@ import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.*
 import android.hardware.camera2.CameraDevice
+import android.hardware.camera2.CaptureRequest
 import android.media.ExifInterface
 import android.media.ExifInterface.TAG_IMAGE_DESCRIPTION
 import android.media.ThumbnailUtils
@@ -44,10 +45,13 @@ import android.view.*
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.Preview
+import androidx.camera.camera2.Camera2Config
+import androidx.camera.camera2.interop.Camera2CameraControl
+import androidx.camera.camera2.interop.CaptureRequestOptions
+import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
+import androidx.camera.video.VideoCapture
 import androidx.camera.view.PreviewView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
@@ -90,7 +94,8 @@ data class RecordingEntryVideo(val file: File, val videoStart: Date, val signSta
  * @since   October 4, 2021
  * @version 1.1.0
  */
-class RecordingActivity : AppCompatActivity() {
+class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
+    override fun getCameraXConfig(): CameraXConfig = Camera2Config.defaultConfig()
 
     private lateinit var context: Context
 
@@ -260,6 +265,7 @@ class RecordingActivity : AppCompatActivity() {
         private val TAG = RecordingActivity::class.java.simpleName
     }
 
+    @SuppressLint("UnsafeOptInUsageError")
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
@@ -307,8 +313,15 @@ class RecordingActivity : AppCompatActivity() {
 
             try {
                 // Bind use cases to camera
-                cameraProvider.bindToLifecycle(
+                val camera = cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, videoCapture)
+
+                var cameraRequestOptions = CaptureRequestOptions.Builder().setCaptureRequestOption(
+                    CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
+                    CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF).build()
+
+                Camera2CameraControl.from(camera.cameraControl).addCaptureRequestOptions(cameraRequestOptions)
+
             } catch(exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
             }
