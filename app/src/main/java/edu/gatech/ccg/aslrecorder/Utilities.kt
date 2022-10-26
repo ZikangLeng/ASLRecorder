@@ -372,9 +372,6 @@ fun sendEmail(from: String, to: List<String>, subject: String, content: String) 
     } catch (ex: MessagingException) {
         Log.d("EMAIL", "Email send failed: ${ex.message}")
     }
-
-
-    Log.d("EMAIL", "Sent email...?")
 }
 
 /**

@@ -92,6 +92,7 @@ class SplashScreenActivity: AppCompatActivity() {
                     putExtra("UID", uid)
                     putExtra("MAP", countMap)
                     putExtra("TOTAL_RECORDINGS", totalRecordings)
+                    putExtra("ALL_WORDS", wordList)
                 }
 
                 startActivity(intent)
@@ -208,6 +209,7 @@ class SplashScreenActivity: AppCompatActivity() {
                         putExtra("UID", uid)
                         putExtra("MAP", countMap)
                         putExtra("TOTAL_RECORDINGS", totalRecordings)
+                        putExtra("ALL_WORDS", wordList)
                     }
 
                     startActivity(intent)

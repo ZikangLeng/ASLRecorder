@@ -31,7 +31,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.*
+import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
+import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
 import android.media.ExifInterface
 import android.media.ExifInterface.TAG_IMAGE_DESCRIPTION
@@ -47,6 +49,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.camera2.Camera2Config
 import androidx.camera.camera2.interop.Camera2CameraControl
+import androidx.camera.camera2.interop.Camera2CameraInfo
 import androidx.camera.camera2.interop.CaptureRequestOptions
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -56,6 +59,7 @@ import androidx.camera.view.PreviewView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.core.content.getSystemService
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -75,6 +79,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantLock
+import kotlin.collections.ArrayList
 import kotlin.concurrent.withLock
 
 
@@ -134,6 +139,11 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
      * List of words that we can swipe through
      */
     lateinit var wordList: ArrayList<String>
+
+    /**
+     * List of all words (used for email)
+     */
+    lateinit var completeWordList: ArrayList<String>
 
 
     /**
@@ -263,9 +273,10 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
      */
     companion object {
         private val TAG = RecordingActivity::class.java.simpleName
+        private val TARGET_RECORDINGS_PER_WORD = 20
     }
 
-    @SuppressLint("UnsafeOptInUsageError")
+    @SuppressLint("UnsafeOptInUsageError", "RestrictedApi")
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
@@ -316,11 +327,26 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
                 val camera = cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, videoCapture)
 
-                var cameraRequestOptions = CaptureRequestOptions.Builder().setCaptureRequestOption(
-                    CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
-                    CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF).build()
+                var optionsBuilder = CaptureRequestOptions.Builder()
+                    .setCaptureRequestOption(
+                        CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
+                        CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF
+                    )
 
-                Camera2CameraControl.from(camera.cameraControl).addCaptureRequestOptions(cameraRequestOptions)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val characteristics = Camera2CameraInfo.extractCameraCharacteristics(camera.cameraInfo)
+                    val zoomRange = characteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE)!!
+                    Log.d("CAMERA ZOOM", "Zoom range: ${zoomRange.lower} to ${zoomRange.upper}")
+                    optionsBuilder.setCaptureRequestOption(
+                        CaptureRequest.CONTROL_ZOOM_RATIO,
+                        zoomRange.lower
+                    )
+                }
+
+                val cameraRequestOptions = optionsBuilder.build()
+
+                Camera2CameraControl.from(camera.cameraControl)
+                    .addCaptureRequestOptions(cameraRequestOptions)
 
             } catch(exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
@@ -609,6 +635,8 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
 
         countMap = intent.getSerializableExtra("MAP") as HashMap<String, Int>
 
+        completeWordList = intent.getStringArrayListExtra("ALL_WORDS") as ArrayList<String>
+
         Log.d("RECORD",
             "Choosing $WORDS_PER_SESSION words from a total of ${fullWordList.size}")
         wordList = randomChoice(fullWordList, WORDS_PER_SESSION, randomSeed)
@@ -750,7 +778,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
         with (prefs.edit()) {
             for (entry in sessionVideoFiles) {
                 val key = "RECORDING_COUNT_${entry.key}"
-                val recordingCount = prefs.getInt(key, 0);
+                val recordingCount = prefs.getInt(key, 0)
                 if (entry.value.isNotEmpty() and entry.value.last().isValid) {
                     putInt(key, recordingCount + 1)
                 }
@@ -765,20 +793,62 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
     fun sendConfirmationEmail() {
         val userId = this.UID
 
-        var wordList = ArrayList<String>()
+        var wordList = ArrayList<Pair<String, Int>>()
+        var recordings = ArrayList<Pair<String, RecordingEntryVideo>>()
+        val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
         for (entry in sessionVideoFiles) {
             if (entry.value.isNotEmpty()) {
-                wordList.add(entry.key)
+                val prefsKey = "RECORDING_COUNT_${entry.key}"
+                val recordingCount = prefs.getInt(prefsKey, 0)
+
+                wordList.add(Pair(entry.key, recordingCount))
+                recordings.addAll(entry.value.map { Pair(entry.key, it) })
             }
         }
+
+        recordings.sortBy { it.second.signStart }
 
         val outputFile = File("/storage/emulated/0/Movies/$filename.mp4")
 
         val fileDigest = outputFile.md5()
 
         val subject = "Recording confirmation for $userId"
-        val body = "The user '$userId' recorded the following ${wordList.size} word(s) to the " +
-                "file $filename.mp4 (MD5 = $fileDigest): ${wordList.joinToString(", ")}"
+        val wordListWithCounts = wordList.joinToString(", ", "", "", -1,
+        "") {
+            "${it.first} (${it.second} / $TARGET_RECORDINGS_PER_WORD)"
+        }
+        var body = "The user '$userId' recorded the following ${wordList.size} word(s) to the " +
+                "file $filename.mp4 (MD5 = $fileDigest): $wordListWithCounts\n\n"
+
+        var totalWordCount = 0
+        for (word in completeWordList) {
+            totalWordCount += prefs.getInt("RECORDING_COUNT_$word", 0)
+        }
+
+        body += "Overall progress: $totalWordCount / " +
+                "${TARGET_RECORDINGS_PER_WORD * completeWordList.size}\n\n"
+
+        fun formatTime(millis: Long): String {
+            val minutes = millis / 60_000
+            val seconds = ((millis % 60_000) / 1000).toInt()
+            val millisRemaining = (millis % 1_000).toInt()
+
+            return "$minutes:${padZeroes(seconds, 2)}.${padZeroes(millisRemaining, 3)}"
+        }
+
+        for (entry in recordings) {
+            body += "- '${entry.first}'"
+            if (!entry.second.isValid) {
+                body += " (discarded)"
+            }
+
+            val clipData = entry.second
+
+            val startMillis = clipData.signStart.time - clipData.videoStart.time
+            val endMillis = clipData.signEnd.time - clipData.videoStart.time
+
+            body += ": ${formatTime(startMillis)} - ${formatTime(endMillis)}\n"
+        }
 
         val emailTask = Thread {
             kotlin.run {
