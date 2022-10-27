@@ -32,9 +32,11 @@ import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.*
 import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.params.StreamConfigurationMap
 import android.media.ExifInterface
 import android.media.ExifInterface.TAG_IMAGE_DESCRIPTION
 import android.media.ThumbnailUtils
@@ -52,11 +54,13 @@ import androidx.camera.camera2.interop.Camera2CameraControl
 import androidx.camera.camera2.interop.Camera2CameraInfo
 import androidx.camera.camera2.interop.CaptureRequestOptions
 import androidx.camera.core.*
+import androidx.camera.core.Camera
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
 import androidx.camera.video.VideoCapture
 import androidx.camera.view.PreviewView
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.content.getSystemService
@@ -177,7 +181,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
     /**
      * The camera being used for recording.
      */
-    private lateinit var camera: CameraDevice
+    private lateinit var camera: Camera
 
 
     /**
@@ -287,35 +291,24 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
 
             // Preview
             val preview = Preview.Builder()
+                .setTargetAspectRatio(AspectRatio.RATIO_16_9)
                 .build()
                 .also {
                     it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
                 }
 
             binding.viewFinder.also {
-                it.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                it.implementationMode = PreviewView.ImplementationMode.PERFORMANCE
                 it.scaleType = PreviewView.ScaleType.FIT_CENTER
             }
 
             // Select front camera as a default
             val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
 
-            try {
-                // Unbind use cases before rebinding
-                cameraProvider.unbindAll()
-
-                // Bind use cases to camera
-                cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview)
-
-            } catch(exc: Exception) {
-                Log.e(TAG, "Use case binding failed", exc)
-            }
-
             // video recording
 
             val qualitySelector = QualitySelector.fromOrderedList(
-                listOf(Quality.HIGHEST, Quality.UHD, Quality.FHD, Quality.HD, Quality.SD))
+                listOf(Quality.HIGHEST, Quality.UHD, Quality.FHD, Quality.HD, Quality.SD, Quality.LOWEST))
 
             val recorder = Recorder.Builder()
                 .setExecutor(cameraExecutor).setQualitySelector(qualitySelector)
@@ -324,33 +317,47 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
             videoCapture = VideoCapture.withOutput(recorder)
 
             try {
+                // Unbind use cases before rebinding
+                cameraProvider.unbindAll()
+
                 // Bind use cases to camera
-                val camera = cameraProvider.bindToLifecycle(
+                camera = cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, videoCapture)
 
-                var optionsBuilder = CaptureRequestOptions.Builder()
-                    .setCaptureRequestOption(
-                        CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
-                        CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF
-                    )
+                val cameraCharacteristics = Camera2CameraInfo.extractCameraCharacteristics(camera.cameraInfo)
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    val characteristics = Camera2CameraInfo.extractCameraCharacteristics(camera.cameraInfo)
-                    val zoomRange = characteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE)!!
-                    Log.d("CAMERA ZOOM", "Zoom range: ${zoomRange.lower} to ${zoomRange.upper}")
-                    optionsBuilder.setCaptureRequestOption(
-                        CaptureRequest.CONTROL_ZOOM_RATIO,
-                        zoomRange.lower
-                    )
+                var cameraRequestOptions = CaptureRequestOptions.Builder().setCaptureRequestOption(
+                    CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
+                    CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF)
+                .setCaptureRequestOption(
+                    CaptureRequest.CONTROL_ZOOM_RATIO,
+//                    1.0F
+                    cameraCharacteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE)!!.lower
+                ).setCaptureRequestOption(
+                    CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
+                        CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF
+                    ).build()
+
+                val cameraId = Camera2CameraInfo.from(camera!!.cameraInfo).cameraId
+                val cameraManager = ContextCompat.getSystemService(this, CameraManager::class.java) as CameraManager
+                val characteristics = cameraManager.getCameraCharacteristics(cameraId)
+                val configs : StreamConfigurationMap? = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+
+                val imageAnalysisSizes = configs?.getOutputSizes(ImageFormat.YUV_420_888)
+                imageAnalysisSizes?.forEach {
+                    Log.d("Recording","Image capturing YUV_420_888 available output size: $it")
                 }
 
-                val cameraRequestOptions = optionsBuilder.build()
+                val previewSizes = configs?.getOutputSizes(SurfaceTexture::class.java)
+                previewSizes?.forEach {
+                    Log.d("Preview", "Preview available output size: $it")
+                }
+                Log.d("Final", "Chosen Preview resolution: ${preview?.attachedSurfaceResolution}")
 
-                Camera2CameraControl.from(camera.cameraControl)
-                    .addCaptureRequestOptions(cameraRequestOptions)
+                Camera2CameraControl.from(camera.cameraControl).addCaptureRequestOptions(cameraRequestOptions)
 
             } catch(exc: Exception) {
-                Log.e(TAG, "Use case binding failed", exc)
+                Log.e(TAG, "Video feed Use case binding failed", exc)
             }
 
             // Create MediaStoreOutputOptions for our recorder
@@ -850,7 +857,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
 
             body += ": ${formatTime(startMillis)} - ${formatTime(endMillis)}\n"
         }
-        
+
         body += "\n\nApp version $APP_VERSION"
 
         val emailTask = Thread {
