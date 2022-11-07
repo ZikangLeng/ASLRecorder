@@ -32,15 +32,12 @@ import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.*
 import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE
-import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.media.ExifInterface
 import android.media.ExifInterface.TAG_IMAGE_DESCRIPTION
 import android.media.ThumbnailUtils
-import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
 import android.util.Log
@@ -54,30 +51,20 @@ import androidx.camera.camera2.interop.Camera2CameraControl
 import androidx.camera.camera2.interop.Camera2CameraInfo
 import androidx.camera.camera2.interop.CaptureRequestOptions
 import androidx.camera.core.*
-import androidx.camera.core.Camera
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
 import androidx.camera.video.VideoCapture
 import androidx.camera.view.PreviewView
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
-import androidx.core.content.getSystemService
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.mediapipe.components.CameraXPreviewHelper
-import com.google.mediapipe.components.ExternalTextureConverter
-import com.google.mediapipe.components.FrameProcessor
-import com.google.mediapipe.framework.AndroidAssetUtil
-import com.google.mediapipe.glutil.EglManager
 import edu.gatech.ccg.aslrecorder.*
 import edu.gatech.ccg.aslrecorder.R
 import edu.gatech.ccg.aslrecorder.databinding.ActivityRecordBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.BufferedInputStream
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -104,157 +91,56 @@ data class RecordingEntryVideo(val file: File, val videoStart: Date, val signSta
  * @version 1.1.0
  */
 class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
-    override fun getCameraXConfig(): CameraXConfig = Camera2Config.defaultConfig()
+
+    companion object {
+        private val TAG = RecordingActivity::class.java.simpleName
+        private const val TARGET_RECORDINGS_PER_WORD = 20
+        private const val APP_VERSION = "1.0"
+    }
 
     private lateinit var context: Context
 
-    /**
-     * The button that must be held to record video.
-     */
+    // UI elements
     lateinit var recordButton: FloatingActionButton
-
-    /**
-     * A timer that will be shown in the corner
-     */
     lateinit var countdownTimer: CountDownTimer
-
     lateinit var countdownText: TextView
-
-    /**
-     * Whether or not the recording button is disabled. When this is true,
-     * all interactions with the record button will be passed to the layer
-     * underneath.
-     */
-    var recordButtonDisabled = false
-
-    /**
-     * Marks whether a clip is currently being recorded.
-     */
-    var isRecording = false
-
-    /**
-     * If set to true, the video recording will be stopped when the user
-     * releases the "Record" button.
-     */
-    var stopRecordingOnRelease = false
-
-
-    /**
-     * List of words that we can swipe through
-     */
-    lateinit var wordList: ArrayList<String>
-
-    /**
-     * List of all words (used for email)
-     */
-    lateinit var completeWordList: ArrayList<String>
-
-
-    /**
-     * The pager used to swipe back and forth between words.
-     */
     lateinit var wordPager: ViewPager2
-
-
-    /**
-     * The current word that the user has been asked to sign.
-     */
-    var currentWord: String = "test"
-
-
-    /**
-     * Map of video recordings the user has taken
-     * key (String) the word being recorded
-     * value (ArrayList<Triple<File, Date, Date>>) list of recording files for each word (file, sign start time, video start time)
-     */
-    var sessionVideoFiles = HashMap<String, ArrayList<RecordingEntryVideo>>()
-
-    /**
-     * SUBSTANTIAL PORTIONS OF THE BELOW CODE BELOW ARE BORROWED
-     * from the Android Open Source Project (AOSP), WHICH IS LICENSED UNDER THE
-     * Apache 2.0 LICENSE (https://www.apache.org/licenses/LICENSE-2.0). (c) 2020 AOSP.
-     *
-     * SEE https://github.com/android/camera-samples/blob/master/Camera2Video/app/
-     *     src/main/java/com/example/android/camera2/video/fragments/CameraFragment.kt
-     */
-
-    /**
-     * The camera being used for recording.
-     */
-    private lateinit var camera: Camera
-
-
-    /**
-     * The thread responsible for handling the camera.
-     */
-    private lateinit var cameraThread: HandlerThread
-
-
-    /**
-     * Handler object for the camera.
-     */
-    private lateinit var cameraHandler: Handler
-
-
-    /**
-     * A [Surface] (canvas) which is used to show the user a real-time preview of their video feed.
-     */
-    private var previewSurface: Surface? = null
-
-
-    /**
-     * The time at which the current recording started. We use this to ensure that recordings
-     * are at least one second long.
-     */
-    private var recordingStartMillis: Long = 0L
-
-
-    /**
-     * Camera executor
-     */
-    private val cameraExecutor = Executors.newSingleThreadExecutor()
-
-    /*
-     * CameraX video capture object
-     */
-    private lateinit var videoCapture: VideoCapture<Recorder>
-
-    /*
-     * Current recording being recorded
-     */
-    private lateinit var currRecording: Recording
-
     private lateinit var binding: ActivityRecordBinding
 
-    /*
-     * Filename of file currently being recorded.
-     */
+    // UI state variables
+    private var recordButtonDisabled = false
+    private var cameraInitialized = false
+    private var isRecording = false
+    private var endSessionOnRecordButtonRelease = false
+    private var currentPage: Int = 0
+
+    // Word data
+    private lateinit var wordList: ArrayList<String>
+    private lateinit var completeWordList: ArrayList<String>
+    private var currentWord: String = "test"
+
+    // Recording and session data
     private lateinit var filename: String
-
-    /*
-     * User's UID. Assigned by CCG to each user during recording app deployment.
-     */
-    private var UID: String = ""
-
-    private lateinit var videoStartTime: Date
-
-    private lateinit var currStartTime: Date
-
-    private lateinit var currEndTime: Date
-
-    private lateinit var category: String
-
     private lateinit var metadataFilename: String
+    private lateinit var recordingCategory: String
 
+    private var userUID: String = ""
+    private var sessionVideoFiles = HashMap<String, ArrayList<RecordingEntryVideo>>()
     private lateinit var countMap: HashMap<String, Int>
 
+    private lateinit var currRecording: Recording
+    private lateinit var sessionStartTime: Date
+    private lateinit var segmentStartTime: Date
+
+    // Camera API variables
+    private lateinit var cameraThread: HandlerThread
+    private lateinit var cameraHandler: Handler
     private lateinit var recordingLightView: ImageView
+    private val cameraExecutor = Executors.newSingleThreadExecutor()
+    private lateinit var videoCapture: VideoCapture<Recorder>
 
-    private var currPosition: Int = 0
-
+    // Permissions
     private var permissions: Boolean = true
-
-    private var intermediateScreen: Boolean = false
 
     val permission =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { map ->
@@ -272,14 +158,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
             }
         }
 
-    /**
-     * Additional data for recordings.
-     */
-    companion object {
-        private val TAG = RecordingActivity::class.java.simpleName
-        private val TARGET_RECORDINGS_PER_WORD = 20
-        private val APP_VERSION = "1.0"
-    }
+    override fun getCameraXConfig(): CameraXConfig = Camera2Config.defaultConfig()
 
     @SuppressLint("UnsafeOptInUsageError", "RestrictedApi")
     private fun startCamera() {
@@ -321,7 +200,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
                 cameraProvider.unbindAll()
 
                 // Bind use cases to camera
-                camera = cameraProvider.bindToLifecycle(
+                val camera = cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, videoCapture)
 
                 val cameraCharacteristics = Camera2CameraInfo.extractCameraCharacteristics(camera.cameraInfo)
@@ -338,7 +217,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
                         CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF
                     ).build()
 
-                val cameraId = Camera2CameraInfo.from(camera!!.cameraInfo).cameraId
+                val cameraId = Camera2CameraInfo.from(camera.cameraInfo).cameraId
                 val cameraManager = ContextCompat.getSystemService(this, CameraManager::class.java) as CameraManager
                 val characteristics = cameraManager.getCameraCharacteristics(cameraId)
                 val configs : StreamConfigurationMap? = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
@@ -364,7 +243,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
 
             val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss.SSS", Locale.US)
             val currentWord = this@RecordingActivity.currentWord
-            filename = "${UID}-${category}-${sdf.format(Date())}"
+            filename = "${userUID}-${recordingCategory}-${sdf.format(Date())}"
             metadataFilename = filename
 
             val contentValues = ContentValues().apply {
@@ -382,7 +261,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
                 .start(ContextCompat.getMainExecutor(super.getBaseContext())) { videoRecordEvent ->
                     run {
                         if (videoRecordEvent is VideoRecordEvent.Start) {
-                            videoStartTime = Calendar.getInstance().time
+                            sessionStartTime = Calendar.getInstance().time
                             Log.d("currRecording", "Recording Started")
                             recordButton.animate().apply {
                                 alpha(1.0f)
@@ -447,7 +326,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
 
                 override fun onFinish() {
                     if (isRecording) {
-                        stopRecordingOnRelease = true
+                        endSessionOnRecordButtonRelease = true
                     } else {
                         wordPager.currentItem = wordList.size + 1
                     }
@@ -516,7 +395,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
 
                             Log.d(TAG, "Recording starting")
 
-                            currStartTime = Calendar.getInstance().time
+                            segmentStartTime = Calendar.getInstance().time
                             isRecording = true
 
                         }
@@ -546,7 +425,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
                             val outputFile = File("/storage/emulated/0/Movies/$filename.mp4")
                             if (recordingList.size == 0) {
                                 runOnUiThread {
-                                    if (currPosition < wordList.size) {
+                                    if (currentPage < wordList.size) {
                                         countMap[currentWord] =
                                             countMap.getOrDefault(currentWord, 0) + 1
                                     }
@@ -556,20 +435,14 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
                             }
 
                             recordingList.add(RecordingEntryVideo(
-                                outputFile, videoStartTime, currStartTime,
+                                outputFile, sessionStartTime, segmentStartTime,
                                 Calendar.getInstance().time, true
                             ))
 
                             val wordPagerAdapter = wordPager.adapter as WordPagerAdapter
                             wordPagerAdapter.updateRecordingList()
 
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                                Log.d(TAG, "Requesting haptic feedback (R+)")
-                                recordButton.performHapticFeedback(HapticFeedbackConstants.REJECT)
-                            } else {
-                                Log.d(TAG, "Requesting haptic feedback (R-)")
-                                recordButton.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                            }
+                            recordButton.performHapticFeedback(HapticFeedbackConstants.REJECT)
 
                             wordPager.currentItem += 1
 
@@ -579,7 +452,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
                         recordButton.clearColorFilter()
 
                         isRecording = false
-                        if (stopRecordingOnRelease) {
+                        if (endSessionOnRecordButtonRelease) {
                             runOnUiThread {
                                 wordPager.currentItem = wordList.size + 1
                             }
@@ -623,7 +496,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
             ArrayList(listOf(*wordArray))
         }
 
-        category = if (bundle?.containsKey("CATEGORY") == true) {
+        recordingCategory = if (bundle?.containsKey("CATEGORY") == true) {
             bundle.getString("CATEGORY").toString()
         } else {
             "randombatch"
@@ -635,7 +508,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
             null
         }
 
-        this.UID = if (bundle?.containsKey("UID") == true) {
+        this.userUID = if (bundle?.containsKey("UID") == true) {
             bundle.getString("UID").toString()
         } else {
             "999"
@@ -660,19 +533,19 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
         wordPager.adapter = WordPagerAdapter(this, wordList, sessionVideoFiles)
         wordPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                currPosition = wordPager.currentItem
-                super.onPageSelected(currPosition)
+                currentPage = wordPager.currentItem
+                super.onPageSelected(currentPage)
 
                 Log.d("D", "${wordList.size}")
 
                 runOnUiThread {
-                    if (currPosition < wordList.size) {
+                    if (currentPage < wordList.size) {
                         // Animate the record button back in, if necessary
 
-                        this@RecordingActivity.currentWord = wordList[currPosition]
+                        this@RecordingActivity.currentWord = wordList[currentPage]
 
                         countMap[currentWord] = countMap.getOrDefault(currentWord, 0)
-                        title = "${currPosition + 1} of ${wordList.size}"
+                        title = "${currentPage + 1} of ${wordList.size}"
 
                         if (recordButtonDisabled) {
                             recordButton.isClickable = true
@@ -684,12 +557,8 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
                                 duration = 250
                             }.start()
                         }
-
-                        intermediateScreen = false
-                    } else if (currPosition == wordList.size) {
+                    } else if (currentPage == wordList.size) {
                         title = "Save or continue?"
-
-                        intermediateScreen = true
 
                         recordButton.isClickable = false
                         recordButton.isFocusable = false
@@ -707,8 +576,6 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
                             TAG, "Recording stopped. Check " +
                                     this@RecordingActivity.getExternalFilesDir(null)?.absolutePath
                         )
-
-                        intermediateScreen = false
 
                         window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                             WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
@@ -756,17 +623,15 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
         initializeCamera()
     }
 
-    private var initializedAlready = false
-
     override fun onResume() {
         super.onResume()
 
         cameraThread = generateCameraThread()
         cameraHandler = Handler(cameraThread.looper)
 
-        if (!initializedAlready) {
+        if (!cameraInitialized) {
             initializeCamera()
-            initializedAlready = true
+            cameraInitialized = true
         }
     }
 
@@ -799,7 +664,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
     }
 
     fun sendConfirmationEmail() {
-        val userId = this.UID
+        val userId = this.userUID
 
         var wordList = ArrayList<Pair<String, Int>>()
         var recordings = ArrayList<Pair<String, RecordingEntryVideo>>()
@@ -858,7 +723,9 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
             body += ": ${formatTime(startMillis)} - ${formatTime(endMillis)}\n"
         }
 
-        body += "\n\nApp version $APP_VERSION"
+        body += "\n\nApp version $APP_VERSION\n\n"
+
+        body += "EXIF data:\n ${convertRecordingListToString(sessionVideoFiles)}"
 
         val emailTask = Thread {
             kotlin.run {
