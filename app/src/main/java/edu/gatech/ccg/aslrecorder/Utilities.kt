@@ -26,7 +26,20 @@ package edu.gatech.ccg.aslrecorder
 
 import android.util.Log
 import edu.gatech.ccg.aslrecorder.recording.RecordingEntryVideo
+import java.io.File
+import java.lang.Math.min
+import java.security.MessageDigest
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
+import kotlin.collections.HashSet
 import kotlin.random.Random
+
+import javax.mail.*
+import javax.mail.internet.InternetAddress
+import javax.mail.internet.MimeBodyPart
+import javax.mail.internet.MimeMessage
+import javax.mail.internet.MimeMultipart
 
 /**
  * Selects `count` elements from `list` at random, using the designated seed if given,
@@ -257,4 +270,126 @@ fun convertRecordingListToString(sessionVideoFiles: HashMap<String, ArrayList<Re
     conversion.append("}")
 //    conversion.append("${sessionVideoFiles[0].file.absolutePath}")
     return conversion.toString()
+}
+
+fun <T> lowestCountRandomChoice(list: List<T>, numRecordings: List<Int>, count: Int,
+                             seed: Long? = null): ArrayList<T> {
+    Log.d("DEBUG", "weightedRandomChoice elements: [" +
+            list.joinToString(", ") + "]")
+
+    val result = ArrayList<T>()
+
+    var seed2 = seed
+    if (seed2 == null) {
+        seed2 = Random.nextLong()
+    }
+
+    val rand = Random(seed2)
+
+    if (count == 0 || list.isEmpty()) {
+        return result
+    }
+
+    var recordingCounts = numRecordings.zip(list)
+    var recordingCountsMap = TreeMap<Int, ArrayList<T>>()
+    for (signCount in recordingCounts) {
+        if (!recordingCountsMap.containsKey(signCount.first)) {
+            recordingCountsMap[signCount.first] = ArrayList<T>()
+        }
+        recordingCountsMap[signCount.first]?.add(signCount.second)
+    }
+
+    var countRemaining = count
+
+    for (entry in recordingCountsMap.entries.iterator()) {
+        if (countRemaining <= 0) {
+            break
+        }
+        val currSigns = entry.value
+        val numSelected = min(currSigns.size, countRemaining)
+        result.addAll(randomChoice(currSigns, numSelected))
+        countRemaining -= numSelected
+    }
+
+    return result
+}
+
+/**
+ * Sends an email from the given address to the list of recipients,
+ * with a given subject and message content.
+ *
+ * Based on code by Stack Overflow user Blundell (CC BY-SA 4.0)
+ * https://stackoverflow.com/a/60090464
+ */
+fun sendEmail(from: String, to: List<String>, subject: String, content: String) {
+    val props = Properties()
+
+    val server = "smtp.gmail.com"
+
+    val auth = PasswordAuthentication(
+        "gtsignstudy.confirmation@gmail.com",
+        "zrynokqfpzqkqlly"
+    )
+
+    props["mail.smtp.auth"] = "true"
+    props["mail.user"] = from
+    props["mail.smtp.host"] = server
+    props["mail.smtp.port"] = "587"
+    props["mail.smtp.starttls.enable"] = "true"
+    props["mail.smtp.ssl.trust"] = server
+    props["mail.mime.charset"] = "UTF-8"
+
+    props["mail.smtp.connectiontimeout"] = "10000"
+    props["mail.smtp.timeout"] = "10000"
+
+    val msg: Message = MimeMessage(Session.getDefaultInstance(props, object : Authenticator() {
+        override fun getPasswordAuthentication() = auth
+    }))
+
+    msg.setFrom(InternetAddress(from))
+    msg.sentDate = Calendar.getInstance().time
+
+    val recipients = to.map { InternetAddress(it) }
+    msg.setRecipients(Message.RecipientType.TO, recipients.toTypedArray())
+
+    msg.replyTo = arrayOf(InternetAddress(from))
+
+    msg.addHeader("X-Mailer", "ASLRecorder")
+    msg.addHeader("Precedence", "bulk")
+    msg.subject = subject
+
+    msg.setContent(MimeMultipart().apply {
+        addBodyPart(MimeBodyPart().apply {
+            setText(content, "iso-8859-1")
+        })
+    })
+
+    Log.d("EMAIL", "Attempting to send email with subject '$subject' and " +
+            "message '$content'")
+
+    try {
+        Transport.send(msg)
+    } catch (ex: MessagingException) {
+        Log.d("EMAIL", "Email send failed: ${ex.message}")
+    }
+}
+
+/**
+ * Computes the MD5 hash for a File object.
+ *
+ * Written by Stack Overflow user broc.seib (CC BY-SA 4.0)
+ * https://stackoverflow.com/a/62963461
+ */
+fun File.md5(): String {
+    val md = MessageDigest.getInstance("MD5")
+    return this.inputStream().use { fis ->
+        val buffer = ByteArray(8192)
+        generateSequence {
+            when (val bytesRead = fis.read(buffer)) {
+                -1 -> null
+                else -> bytesRead
+            }
+        }.forEach { bytesRead -> md.update(buffer, 0, bytesRead) }
+        md.digest().joinToString("") { "%02x".format(it) }
+    }
 }

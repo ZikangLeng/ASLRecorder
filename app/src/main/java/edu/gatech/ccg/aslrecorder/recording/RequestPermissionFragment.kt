@@ -41,8 +41,6 @@ class RequestPermissionFragment(label: String, @LayoutRes layout: Int): Fragment
 
     private var TARGET_RECORDINGS: Int = 0
 
-//    lateinit var button: Button
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -50,9 +48,6 @@ class RequestPermissionFragment(label: String, @LayoutRes layout: Int): Fragment
         textField.text = label
 
         TARGET_RECORDINGS = SplashScreenActivity.SplashScreenActivity.NUM_RECORDINGS
-
-        counter = view.findViewById(R.id.recordingCounter)
-        counter.text = "0 / $TARGET_RECORDINGS"
     }
 
     fun updateWordCount(count: Int) {

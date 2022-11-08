@@ -28,6 +28,8 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.RelativeLayout
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -52,12 +54,17 @@ class RecordingListFragment(wordList: ArrayList<String>,
     lateinit var saveButton: Button
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        // super.onViewCreated(view, savedInstanceState)
         Log.d("HELLO", "onViewCreated!")
         val scrollView = view.findViewById<RecyclerView>(R.id.recordingList)
         scrollView.layoutManager = LinearLayoutManager(this.context)
         recordingListAdapter = RecordingListAdapter(words, files, recording)
         scrollView.adapter = recordingListAdapter
+
+        var loadingScreen = view.findViewById<LinearLayout>(R.id.loadingScreen)
+        loadingScreen.alpha = 0.0f
+
+        var loadingWheel = view.findViewById<RelativeLayout>(R.id.loadingPanel)
+        loadingWheel.visibility = View.INVISIBLE
 
         this.saveButton = view.findViewById(R.id.closeSession)
         this.saveButton.setOnClickListener {
@@ -78,14 +85,6 @@ class RecordingListFragment(wordList: ArrayList<String>,
 
     fun determineExitButtonAvailability() {
         this.saveButton.isEnabled = true
-//        for (entry in files) {
-//            if (entry.value.size > 0) {
-//                this.saveButton.isEnabled = true
-//                return
-//            }
-//        }
-//
-//        this.saveButton.isEnabled = false
     }
 
 

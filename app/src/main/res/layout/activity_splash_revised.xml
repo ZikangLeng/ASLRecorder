@@ -36,18 +36,6 @@
         app:layout_constraintTop_toTopOf="@+id/uidLabel" />
 
     <TextView
-        android:id="@+id/changeUID"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
-        android:text="@string/change_UID"
-        android:textStyle="bold"
-        android:onClick="onChangeUIDClick"
-        android:clickable="true"
-        app:layout_constraintStart_toEndOf="@+id/uidBox"
-        app:layout_constraintTop_toTopOf="@+id/uidLabel" />
-
-    <TextView
         android:id="@+id/statisticsHeader"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -112,32 +100,55 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/statsWordList" />
 
-    <TextView
-        android:id="@+id/recordingList"
+    <LinearLayout
+        android:id="@+id/linearLayout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
         android:layout_marginTop="8dp"
-        android:text="word1\nword2\nword3\nword4\nword5"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="@+id/newSessionHeader"
-        app:layout_constraintTop_toBottomOf="@+id/newSessionHeader" />
+        android:orientation="horizontal"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/newSessionHeader">
 
-    <Button
-        android:id="@+id/startButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="32dp"
-        android:text="Start"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/rerollButton" />
+        <TextView
+            android:id="@+id/recordingListColumn1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="word1\nword2\nword3\nword4\nword5"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/recordingListColumn2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:text="word1\nword2\nword3\nword4\nword5"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
 
     <Button
         android:id="@+id/rerollButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginStart="60dp"
+        android:layout_marginBottom="24dp"
         android:text="Reroll"
-        app:layout_constraintStart_toStartOf="@+id/recordingList"
-        app:layout_constraintTop_toBottomOf="@+id/recordingList" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/startButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="60dp"
+        android:layout_marginBottom="24dp"
+        android:text="Start"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

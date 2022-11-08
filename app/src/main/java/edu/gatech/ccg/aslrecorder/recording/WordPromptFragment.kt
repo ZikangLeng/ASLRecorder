@@ -26,18 +26,15 @@ package edu.gatech.ccg.aslrecorder.recording
 
 import android.os.Bundle
 import android.view.View
+import android.widget.Button
 import android.widget.TextView
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
 import edu.gatech.ccg.aslrecorder.R
-import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity
 
 class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout) {
 
     var label: String = label
-    lateinit var counter: TextView
-
-    private var TARGET_RECORDINGS: Int = 0
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -45,14 +42,31 @@ class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout
         val textField = view.findViewById<TextView>(R.id.promptText)
         textField.text = label
 
-        TARGET_RECORDINGS = SplashScreenActivity.SplashScreenActivity.NUM_RECORDINGS
+        val helpButton: Button = view.findViewById(R.id.helpButton)
+        // Is there a video for this recording?
+        try {
+            val videoTutorial = context?.resources?.assets?.openFd("videos/$label.mp4")
 
-        counter = view.findViewById(R.id.recordingCounter)
-        counter.text = "0 / $TARGET_RECORDINGS"
-    }
+            if (videoTutorial != null) {
+                helpButton.setOnClickListener {
+                    val bundle = Bundle()
+                    bundle.putString("word", label)
+                    bundle.putBoolean("landscape", true)
 
-    fun updateWordCount(count: Int) {
-        counter.text = "$count / $TARGET_RECORDINGS"
+                    val previewFragment = VideoPreviewFragment(R.layout.recording_preview)
+                    previewFragment.arguments = bundle
+
+                    val transaction = requireActivity().supportFragmentManager.beginTransaction()
+                    transaction.add(previewFragment, "videoPreview")
+                    transaction.commit()
+                }
+            } else {
+                helpButton.isEnabled = false
+            }
+        } catch (e: Exception) {
+            // No video available, so disable the button
+            helpButton.isEnabled = false
+        }
     }
 
 }
