@@ -321,14 +321,14 @@ fun <T> lowestCountRandomChoice(list: List<T>, numRecordings: List<Int>, count: 
  * Based on code by Stack Overflow user Blundell (CC BY-SA 4.0)
  * https://stackoverflow.com/a/60090464
  */
-fun sendEmail(from: String, to: List<String>, subject: String, content: String) {
+fun sendEmail(from: String, to: List<String>, subject: String, content: String, password: String) {
     val props = Properties()
 
     val server = "smtp.gmail.com"
 
     val auth = PasswordAuthentication(
         "gtsignstudy.confirmation@gmail.com",
-        "zrynokqfpzqkqlly"
+        password
     )
 
     props["mail.smtp.auth"] = "true"

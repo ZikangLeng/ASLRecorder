@@ -61,6 +61,7 @@ after
 airplane
 all
 alligator
+animal
 another
 ant
 any
@@ -69,7 +70,9 @@ arm
 asleep
 aunt
 awake
+backyard
 bad
+balloon
 bath
 bathroom
 because
@@ -89,7 +92,6 @@ brown
 bug
 bye
 call (on phone)
-camera
 can
 candy
 car
@@ -120,6 +122,7 @@ door
 down
 drawer
 drink
+drop
 dry
 dryer
 duck
@@ -131,6 +134,7 @@ eye
 face
 fall
 farm
+feet
 find
 fine
 finger
@@ -139,6 +143,7 @@ fireman
 first
 fish
 flag
+flower
 food
 for
 french fries
@@ -177,8 +182,8 @@ ice cream
 ice
 if
 jacket
+jeans
 jump
-keys
 kick
 kiss
 kitty
@@ -217,16 +222,13 @@ off
 old
 open
 orange
-out
 outside
 owie
 owl
-party
 pen
 pencil
 penny
 pick
-pickle
 pig
 pizza
 please
@@ -243,9 +245,9 @@ rain
 read
 red
 refrigerator
+ride
 sad
 same
-sauce
 say
 scissors
 see
@@ -257,7 +259,6 @@ sleep
 sleepy
 snack
 snow
-soup
 stairs
 stay
 sticky
@@ -272,9 +273,7 @@ that
 there
 think
 thirsty
-this
 tiger
-tissue
 tomorrow
 tongue
 tonight
@@ -288,6 +287,7 @@ uncle
 underwear
 up
 vacuum
+wait
 wake
 watch
 water
