@@ -382,8 +382,8 @@
         <item>hot</item>
         <item>hungry</item>
         <item>ice cream</item>
-        <item>ice</item>
         <item>if</item>
+        <item>into</item>
         <item>jacket</item>
         <item>jeans</item>
         <item>jump</item>
@@ -421,8 +421,8 @@
         <item>not</item>
         <item>now</item>
         <item>nuts</item>
-        <item>off</item>
         <item>old</item>
+        <item>on</item>
         <item>open</item>
         <item>orange</item>
         <item>outside</item>
@@ -431,6 +431,7 @@
         <item>pen</item>
         <item>pencil</item>
         <item>penny</item>
+        <item>person</item>
         <item>pick</item>
         <item>pig</item>
         <item>pizza</item>
@@ -441,7 +442,6 @@
         <item>pretend</item>
         <item>pretty</item>
         <item>puppy</item>
-        <item>purse</item>
         <item>puzzle</item>
         <item>radio</item>
         <item>rain</item>
@@ -465,7 +465,7 @@
         <item>stairs</item>
         <item>stay</item>
         <item>sticky</item>
-        <item>store</item>
+        <item>story</item>
         <item>stuck</item>
         <item>sun</item>
         <item>table</item>
