@@ -469,10 +469,6 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
         cameraThread.quitSafely()
     }
 
-    /**
-     * END BORROWED CODE FROM AOSP.
-     */
-
     fun generateCameraThread() = HandlerThread("CameraThread").apply { start() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
