@@ -176,7 +176,6 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
     private var sessionVideoFiles = HashMap<String, ArrayList<RecordingEntryVideo>>()
     private lateinit var countMap: HashMap<String, Int>
 
-    private lateinit var currRecording: Recording
     private lateinit var sessionStartTime: Date
     private lateinit var segmentStartTime: Date
 
@@ -184,78 +183,23 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
     private lateinit var cameraThread: HandlerThread
     private lateinit var cameraHandler: Handler
     private lateinit var recordingLightView: ImageView
-    private val cameraExecutor = Executors.newSingleThreadExecutor()
-    private lateinit var videoCapture: VideoCapture<Recorder>
-
-
-    /**
-     * The [Surface] (canvas) where video recording data is stored. Essentially, the camera
-     * feed is projected onto this [Surface], and the [MediaRecorder] ([recorder]) reads from
-     * this surface into the MP4 format.
-     */
     private lateinit var recordingSurface: Surface
-
-
-    /**
-     * The media recording service.
-     */
     private lateinit var recorder: MediaRecorder
-
-
-    /**
-     * The Android service responsible for providing information about the phone's camera setup.
-     */
+    private lateinit var camera: CameraDevice
+    private var previewSurface: Surface? = null
+    private lateinit var session: CameraCaptureSession
+    lateinit var cameraView: SurfaceView
+    private lateinit var previewRequest: CaptureRequest
+    private lateinit var recordRequest: CaptureRequest
+    private lateinit var outputFile: File
     private val cameraManager: CameraManager by lazy {
         val context = this.applicationContext
         context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     }
 
-    /**
-     * The camera being used for recording.
-     */
-    private lateinit var camera: CameraDevice
-
-
-    /**
-     * A [Surface] (canvas) which is used to show the user a real-time preview of their video feed.
-     */
-    private var previewSurface: Surface? = null
-
     // Permissions
     private var permissions: Boolean = true
 
-
-    /**
-     * The current recording session, if we are currently capturing video.
-     */
-    private lateinit var session: CameraCaptureSession
-
-
-    /**
-     * The camera preview.
-     */
-    lateinit var cameraView: SurfaceView
-
-
-    /**
-     * The [CaptureRequest] needed to send video data to [previewSurface].
-     */
-    private lateinit var previewRequest: CaptureRequest
-
-
-    /**
-     * The [CaptureRequest] needed to send video data to a recording file.
-     */
-    private lateinit var recordRequest: CaptureRequest
-
-
-    /**
-     * The [File] where the next recording will be stored. The filename contains the word being
-     * signed, as well as the date and time of the recording.
-     *
-     * TODO: Delete these files after copying them to the user's photo library.
-     */
-    private lateinit var outputFile: File
 
     val permission =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { map ->
