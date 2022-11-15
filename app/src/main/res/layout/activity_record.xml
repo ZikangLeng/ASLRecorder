@@ -5,35 +5,32 @@
     android:id="@+id/main_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#000000"
     tools:context=".recording.RecordingActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/aspectRatioConstraint"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintDimensionRatio="H,9:16"
+        android:gravity="center"
+        app:layout_constraintDimensionRatio="H,3:4"
         app:layout_constraintEnd_toEndOf="@+id/wordPager"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
 
-        <androidx.camera.view.PreviewView
-            android:id="@+id/viewFinder"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="visible">
-
-        </androidx.camera.view.PreviewView>
-
-<!--        <view-->
-<!--            android:id="@+id/cameraPreview"-->
-<!--            class="android.view.SurfaceView"-->
-<!--            android:layout_width="0dp"-->
-<!--            android:layout_height="0dp"-->
-<!--            app:layout_constraintBottom_toBottomOf="parent"-->
-<!--            app:layout_constraintEnd_toEndOf="parent"-->
-<!--            app:layout_constraintHorizontal_bias="0.54"-->
-<!--            app:layout_constraintStart_toStartOf="parent"-->
-<!--            app:layout_constraintTop_toTopOf="parent" />-->
+        <view
+            android:id="@+id/cameraPreview"
+            class="android.view.SurfaceView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:gravity="center_vertical"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.0" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.viewpager2.widget.ViewPager2
@@ -58,9 +55,9 @@
         android:clickable="true"
         android:scaleX="2"
         android:scaleY="2"
-        app:borderWidth="0dp"
         app:backgroundTint="#F80000"
-        app:layout_constraintBottom_toBottomOf="@id/aspectRatioConstraint"
+        app:borderWidth="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:srcCompat="@drawable/record"
@@ -93,7 +90,7 @@
         android:textColor="@android:color/black"
         android:textStyle="bold"
         app:layout_constraintEnd_toStartOf="@+id/videoRecordingLight3"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="@+id/wordPager" />
 
     <ImageView
         android:id="@+id/videoRecordingLight3"
@@ -101,7 +98,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="40dp"
         app:layout_constraintBottom_toBottomOf="@+id/textView5"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/aspectRatioConstraint"
         app:layout_constraintTop_toTopOf="@+id/textView5"
         app:srcCompat="@drawable/recording_light" />
 </androidx.constraintlayout.widget.ConstraintLayout>
