@@ -98,40 +98,6 @@ data class RecordingEntryVideo(val file: File, val videoStart: Date, val signSta
  * @version 1.1.0
  */
 class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
-    /**
-     * Generates a new [Surface] for storing recording data, which will promptly be assigned to
-     * the recordingSurface field above.
-     */
-    private fun createRecordingSurface(): Surface {
-        val surface = MediaCodec.createPersistentInputSurface()
-        val recorder = MediaRecorder()
-        outputFile = File("/storage/emulated/0/Movies/$filename.mp4")
-        prepareRecorder(recorder, surface).apply {
-            prepare()
-            release()
-        }
-
-        return surface
-    }
-
-
-    /**
-     * Prepares a [MediaRecorder] using the given surface.
-     */
-    private fun prepareRecorder(rec: MediaRecorder, surface: Surface)
-            = rec.apply {
-        setVideoSource(MediaRecorder.VideoSource.SURFACE)
-        setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-        setOutputFile(outputFile.absolutePath)
-        setVideoEncodingBitRate(RECORDER_VIDEO_BITRATE)
-        setVideoFrameRate(30)
-
-        // TODO: Device-specific!
-        setVideoSize(2592, 1944)
-        setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-        setInputSurface(surface)
-    }
-
     companion object {
         private val TAG = RecordingActivity::class.java.simpleName
 
@@ -220,6 +186,40 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
     override fun getCameraXConfig(): CameraXConfig = Camera2Config.defaultConfig()
 
     /**
+     * Generates a new [Surface] for storing recording data, which will promptly be assigned to
+     * the recordingSurface field above.
+     */
+    private fun createRecordingSurface(): Surface {
+        val surface = MediaCodec.createPersistentInputSurface()
+        val recorder = MediaRecorder()
+        outputFile = File("/storage/emulated/0/Movies/$filename.mp4")
+        prepareRecorder(recorder, surface).apply {
+            prepare()
+            release()
+        }
+
+        return surface
+    }
+
+
+    /**
+     * Prepares a [MediaRecorder] using the given surface.
+     */
+    private fun prepareRecorder(rec: MediaRecorder, surface: Surface)
+            = rec.apply {
+        setVideoSource(MediaRecorder.VideoSource.SURFACE)
+        setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+        setOutputFile(outputFile.absolutePath)
+        setVideoEncodingBitRate(RECORDER_VIDEO_BITRATE)
+        setVideoFrameRate(30)
+
+        // TODO: Device-specific!
+        setVideoSize(2592, 1944)
+        setVideoEncoder(MediaRecorder.VideoEncoder.H264)
+        setInputSurface(surface)
+    }
+
+    /**
      * This code initializes the camera-related portion of the code, adding listeners to enable
      * video recording as long as we hold down the Record button.
      */
@@ -247,7 +247,6 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
          * User has given permission to use the camera
          */
         else {
-
             outputFile = File("/storage/emulated/0/Movies/$filename.mp4")
 
             /**
@@ -540,21 +539,26 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
     }
 
     override fun onStop() {
-        super.onStop()
         try {
             session.close()
             camera.close()
             cameraThread.quitSafely()
             recorder.release()
             recordingSurface.release()
+
+            super.onStop()
         } catch (exc: Throwable) {
-            Log.e(TAG, "Error closing camera", exc)
+            Log.e(TAG, "Error in RecordingActivity.onStop()", exc)
         }
     }
 
     override fun onDestroy() {
-        super.onDestroy()
-        cameraThread.quitSafely()
+        try {
+            super.onDestroy()
+            cameraThread.quitSafely()
+        } catch (exc: Throwable) {
+            Log.e(TAG, "Error in RecordingActivity.onDestroy()", exc)
+        }
     }
 
     fun generateCameraThread() = HandlerThread("CameraThread").apply { start() }

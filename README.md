@@ -7,11 +7,12 @@ sign language recognition models. Forked from Sahir Shahryar's ASLRecorder: http
 ## Releases
 ### 1.1 (WIP)
 - [ ] Code cleanup
-- [ ] Show maximal field of view for camera
+- [x] Show maximal field of view for camera
 - [ ] Include DPAN recordings for all words (220/250)
 - [x] Remove passwords from source code
 - [ ] Bug fixes
   - [x] Crashes on older versions of Android when sending mail
+  - [ ] `IllegalStateException`s when closing recording activity
 
 ### 1.0
 * Initial release
