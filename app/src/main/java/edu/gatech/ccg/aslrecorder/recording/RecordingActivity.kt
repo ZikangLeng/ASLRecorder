@@ -33,12 +33,12 @@ import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.*
 import android.hardware.camera2.*
-import android.hardware.camera2.params.StreamConfigurationMap
 import android.media.ExifInterface
 import android.media.ExifInterface.TAG_IMAGE_DESCRIPTION
 import android.media.MediaCodec
 import android.media.MediaRecorder
 import android.media.ThumbnailUtils
+import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
 import android.util.Log
@@ -49,16 +49,9 @@ import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.camera2.Camera2Config
-import androidx.camera.camera2.interop.Camera2CameraControl
-import androidx.camera.camera2.interop.Camera2CameraInfo
-import androidx.camera.camera2.interop.CaptureRequestOptions
 import androidx.camera.core.*
-import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
-import androidx.camera.video.VideoCapture
-import androidx.camera.view.PreviewView
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -68,13 +61,12 @@ import edu.gatech.ccg.aslrecorder.databinding.ActivityRecordBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.BufferedInputStream
 import java.io.File
-import java.lang.IllegalStateException
+import java.io.FileInputStream
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.Executors
 import java.util.concurrent.locks.ReentrantLock
-import kotlin.collections.ArrayList
 import kotlin.concurrent.withLock
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -97,7 +89,7 @@ data class RecordingEntryVideo(val file: File, val videoStart: Date, val signSta
  * @since   October 4, 2021
  * @version 1.1.0
  */
-class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
+class RecordingActivity : AppCompatActivity() {
     companion object {
         private val TAG = RecordingActivity::class.java.simpleName
 
@@ -107,6 +99,8 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
          */
         private const val RECORDER_VIDEO_BITRATE: Int = 15_000_000
 
+        private const val RECORDING_HEIGHT = 2592
+        private const val RECORDING_WIDTH = 1944
 
         private const val TARGET_RECORDINGS_PER_WORD = 20
         private const val APP_VERSION = "1.1"
@@ -183,16 +177,21 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
             }
         }
 
-    override fun getCameraXConfig(): CameraXConfig = Camera2Config.defaultConfig()
-
     /**
      * Generates a new [Surface] for storing recording data, which will promptly be assigned to
      * the recordingSurface field above.
      */
     private fun createRecordingSurface(): Surface {
         val surface = MediaCodec.createPersistentInputSurface()
-        val recorder = MediaRecorder()
-        outputFile = File("/storage/emulated/0/Movies/$filename.mp4")
+        val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            MediaRecorder(this)
+        } else {
+            MediaRecorder()
+        }
+
+        val outputDir = getExternalFilesDir(Environment.DIRECTORY_MOVIES)!!.absolutePath
+        outputFile = File(outputDir, "$filename.mp4")
+
         prepareRecorder(recorder, surface).apply {
             prepare()
             release()
@@ -200,7 +199,6 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
 
         return surface
     }
-
 
     /**
      * Prepares a [MediaRecorder] using the given surface.
@@ -214,10 +212,11 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
         setVideoFrameRate(30)
 
         // TODO: Device-specific!
-        setVideoSize(2592, 1944)
+        setVideoSize(RECORDING_HEIGHT, RECORDING_WIDTH)
         setVideoEncoder(MediaRecorder.VideoEncoder.H264)
         setInputSurface(surface)
     }
+
 
     /**
      * This code initializes the camera-related portion of the code, adding listeners to enable
@@ -247,7 +246,6 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
          * User has given permission to use the camera
          */
         else {
-            outputFile = File("/storage/emulated/0/Movies/$filename.mp4")
 
             /**
              * Find the front camera, crashing if none is available (should never happen, assuming
@@ -330,7 +328,6 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
 
                             val recordingList = sessionVideoFiles[currentWord]!!
                             Log.d("VideoPlayback", MediaStore.Video.Media.getContentUri("external").toString())
-                            val outputFile = File("/storage/emulated/0/Movies/$filename.mp4")
                             if (recordingList.size == 0) {
                                 runOnUiThread {
                                     if (currentPage < wordList.size) {
@@ -378,7 +375,7 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
                 Log.d(TAG,"Initializing surface!")
                 previewSurface = holder.surface
 
-                holder.setFixedSize(2592, 1944)
+                holder.setFixedSize(RECORDING_HEIGHT, RECORDING_WIDTH)
                 initializeCamera()
             }
 
@@ -389,9 +386,6 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
                 height: Int
             ) {
                 Log.d(TAG, "Camera preview surface changed!")
-                // PROBABLY NOT THE BEST IDEA!
-//                previewSurface = holder.surface
-//                initializeCamera()
             }
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
@@ -449,6 +443,8 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
             }
         }, handler)
     }
+
+
 
     private fun startRecording() {
         previewRequest = session.device.createCaptureRequest(CameraDevice.TEMPLATE_RECORD).apply {
@@ -554,8 +550,10 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
 
     override fun onDestroy() {
         try {
-            super.onDestroy()
             cameraThread.quitSafely()
+            recorder.release()
+            recordingSurface.release()
+            super.onDestroy()
         } catch (exc: Throwable) {
             Log.e(TAG, "Error in RecordingActivity.onDestroy()", exc)
         }
@@ -752,10 +750,6 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
         onDestroy()
     }
 
-    fun goToWord(index: Int) {
-        wordPager.currentItem = index
-    }
-
     fun deleteMostRecentRecording(word: String) {
         // Since only the last recording is shown, the last recording should be deleted
         if (sessionVideoFiles.containsKey(word)) {
@@ -776,6 +770,31 @@ class RecordingActivity : AppCompatActivity(), CameraXConfig.Provider {
             commit()
         }
         createTimestampFileAllinOne(sessionVideoFiles)
+
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Video.VideoColumns.DISPLAY_NAME, outputFile.name)
+            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+            put(MediaStore.MediaColumns.SIZE, outputFile.length())
+        }
+
+        val uri = context.contentResolver.insert(
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+            contentValues
+        )
+
+        uri?.let { contentUri ->
+            contentResolver.openOutputStream(contentUri).use { outputStream ->
+                val brr = ByteArray(1024)
+                var len: Int
+                val bufferedInputStream = BufferedInputStream(FileInputStream(outputFile.absoluteFile))
+                while ((bufferedInputStream.read(brr, 0, brr.size).also { len = it }) != -1) {
+                    outputStream?.write(brr, 0, len)
+                }
+                outputStream?.flush()
+                bufferedInputStream.close()
+            }
+        }
+
         sendConfirmationEmail()
         finish()
     }
