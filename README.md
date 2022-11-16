@@ -8,7 +8,7 @@ sign language recognition models. Forked from Sahir Shahryar's ASLRecorder: http
 ### 1.1 (WIP)
 - [ ] Code cleanup
 - [x] Show maximal field of view for camera
-- [ ] Include DPAN recordings for all words (220/250)
+- [x] Include DPAN recordings for all words
 - [x] Remove passwords from source code
 - [ ] Bug fixes
   - [x] Crashes on older versions of Android when sending mail
@@ -165,7 +165,6 @@ kiss
 kitty
 lamp
 later
-light
 like
 lion
 lips
@@ -238,6 +237,7 @@ snow
 stairs
 stay
 sticky
+store
 story
 stuck
 sun
