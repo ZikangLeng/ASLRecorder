@@ -534,6 +534,16 @@ class RecordingActivity : AppCompatActivity() {
         recordingLightView.colorFilter = filter
     }
 
+    override fun onRestart() {
+        try {
+            super.onRestart()
+            onStop()
+            onDestroy()
+        } catch (exc: Throwable) {
+            Log.e(TAG, "Error in RecordingActivity.onRestart()", exc)
+        }
+    }
+
     override fun onStop() {
         try {
             session.close()
@@ -541,21 +551,9 @@ class RecordingActivity : AppCompatActivity() {
             cameraThread.quitSafely()
             recorder.release()
             recordingSurface.release()
-
             super.onStop()
         } catch (exc: Throwable) {
             Log.e(TAG, "Error in RecordingActivity.onStop()", exc)
-        }
-    }
-
-    override fun onDestroy() {
-        try {
-            cameraThread.quitSafely()
-            recorder.release()
-            recordingSurface.release()
-            super.onDestroy()
-        } catch (exc: Throwable) {
-            Log.e(TAG, "Error in RecordingActivity.onDestroy()", exc)
         }
     }
 
@@ -743,11 +741,6 @@ class RecordingActivity : AppCompatActivity() {
             setupCameraCallback()
             cameraInitialized = true
         }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        onDestroy()
     }
 
     fun deleteMostRecentRecording(word: String) {
