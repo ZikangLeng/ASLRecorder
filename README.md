@@ -12,7 +12,7 @@ sign language recognition models. Forked from Sahir Shahryar's ASLRecorder: http
 - [x] Remove passwords from source code
 - [ ] Bug fixes
   - [x] Crashes on older versions of Android when sending mail
-  - [ ] `IllegalStateException`s when closing recording activity
+  - [x] `IllegalStateException`s when closing recording activity
 
 ### 1.0
 * Initial release
