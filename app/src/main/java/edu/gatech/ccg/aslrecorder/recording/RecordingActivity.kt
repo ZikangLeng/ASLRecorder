@@ -94,7 +94,7 @@ class RecordingActivity : AppCompatActivity() {
         private val TAG = RecordingActivity::class.java.simpleName
 
         /**
-         * Record video at 15 Mbps. At 1080p30, this level of detail should be more than high
+         * Record video at 15 Mbps. At 1944p30, this level of detail should be more than high
          * enough.
          */
         private const val RECORDER_VIDEO_BITRATE: Int = 15_000_000
@@ -213,7 +213,7 @@ class RecordingActivity : AppCompatActivity() {
 
         // TODO: Device-specific!
         setVideoSize(RECORDING_HEIGHT, RECORDING_WIDTH)
-        setVideoEncoder(MediaRecorder.VideoEncoder.H264)
+        setVideoEncoder(MediaRecorder.VideoEncoder.HEVC)
         setInputSurface(surface)
     }
 
