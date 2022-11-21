@@ -149,8 +149,7 @@ class RecordingActivity : AppCompatActivity() {
     private var previewSurface: Surface? = null
     private lateinit var session: CameraCaptureSession
     lateinit var cameraView: SurfaceView
-    private lateinit var previewRequest: CaptureRequest
-    private lateinit var recordRequest: CaptureRequest
+    private lateinit var cameraRequest: CaptureRequest
     private lateinit var outputFile: File
     private val cameraManager: CameraManager by lazy {
         val context = this.applicationContext
@@ -159,7 +158,6 @@ class RecordingActivity : AppCompatActivity() {
 
     // Permissions
     private var permissions: Boolean = true
-
 
     val permission =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { map ->
@@ -183,7 +181,7 @@ class RecordingActivity : AppCompatActivity() {
      */
     private fun createRecordingSurface(): Surface {
         val surface = MediaCodec.createPersistentInputSurface()
-        val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             MediaRecorder(this)
         } else {
             MediaRecorder()
@@ -194,7 +192,6 @@ class RecordingActivity : AppCompatActivity() {
 
         prepareRecorder(recorder, surface).apply {
             prepare()
-            release()
         }
 
         return surface
@@ -215,6 +212,16 @@ class RecordingActivity : AppCompatActivity() {
         setVideoSize(RECORDING_HEIGHT, RECORDING_WIDTH)
         setVideoEncoder(MediaRecorder.VideoEncoder.HEVC)
         setInputSurface(surface)
+
+        /**
+         * The orientation of 270 degrees (-90 degrees) was determined through
+         * experimentation. For now, we do not need to support other
+         * orientations than the default portrait orientation.
+         *
+         * TODO: Verify validity of this orientation on devices other than the
+         *       Pixel 5a.
+         */
+        setOrientationHint(270)
     }
 
 
@@ -375,7 +382,7 @@ class RecordingActivity : AppCompatActivity() {
                 Log.d(TAG,"Initializing surface!")
                 previewSurface = holder.surface
 
-                holder.setFixedSize(RECORDING_HEIGHT, RECORDING_WIDTH)
+//                holder.setFixedSize(RECORDING_HEIGHT, RECORDING_WIDTH)
                 initializeCamera()
             }
 
@@ -385,6 +392,7 @@ class RecordingActivity : AppCompatActivity() {
                 width: Int,
                 height: Int
             ) {
+                Log.d(TAG, "New format, width, height: {$format}, {$width}, {$height}")
                 Log.d(TAG, "Camera preview surface changed!")
             }
 
@@ -434,7 +442,9 @@ class RecordingActivity : AppCompatActivity() {
         // Creates a capture session using the predefined targets, and defines a session state
         // callback which resumes the coroutine once the session is configured
         device.createCaptureSession(targets, object: CameraCaptureSession.StateCallback() {
-            override fun onConfigured(session: CameraCaptureSession) = cont.resume(session)
+            override fun onConfigured(session: CameraCaptureSession) {
+                cont.resume(session)
+            }
 
             override fun onConfigureFailed(session: CameraCaptureSession) {
                 val exc = RuntimeException("Camera ${device.id} session configuration failed")
@@ -447,21 +457,13 @@ class RecordingActivity : AppCompatActivity() {
 
 
     private fun startRecording() {
-        previewRequest = session.device.createCaptureRequest(CameraDevice.TEMPLATE_RECORD).apply {
-            previewSurface?.let {
-                addTarget(it)
-            }
-        }.build()
-
-        session.setRepeatingRequest(previewRequest, null, /* cameraHandler */ null)
-
         this@RecordingActivity.requestedOrientation =
             ActivityInfo.SCREEN_ORIENTATION_LOCKED
 
         /**
          * Create a request to record at 30fps.
          */
-        recordRequest = session.device.createCaptureRequest(
+        cameraRequest = camera.createCaptureRequest(
             CameraDevice.TEMPLATE_RECORD).apply {
             previewSurface?.let { addTarget(it) }
             addTarget(recordingSurface)
@@ -475,24 +477,9 @@ class RecordingActivity : AppCompatActivity() {
                 CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF)
         }.build()
 
-        session.setRepeatingRequest(recordRequest, null, cameraHandler)
+        session.setRepeatingRequest(cameraRequest, null, cameraHandler)
 
-        prepareRecorder(recorder, recordingSurface)
-
-        // Finalizes recorder setup and starts recording
-        recorder.apply {
-            /**
-             * The orientation of 270 degrees (-90 degrees) was determined through
-             * experimentation. For now, we do not need to support other
-             * orientations than the default portrait orientation.
-             *
-             * TODO: Verify validity of this orientation on devices other than the
-             *       Pixel 5a.
-             */
-            setOrientationHint(270)
-            prepare()
-            start()
-        }
+        recorder.start()
 
         sessionStartTime = Calendar.getInstance().time
 
@@ -546,14 +533,25 @@ class RecordingActivity : AppCompatActivity() {
 
     override fun onStop() {
         try {
-            session.close()
-            camera.close()
-            cameraThread.quitSafely()
-            recorder.release()
-            recordingSurface.release()
+            if (wordPager.currentItem <= wordList.size) {
+                recorder.stop()
+            }
             super.onStop()
         } catch (exc: Throwable) {
             Log.e(TAG, "Error in RecordingActivity.onStop()", exc)
+        }
+    }
+
+    override fun onDestroy() {
+        try {
+            session.close()
+            recorder.release()
+            camera.close()
+            cameraThread.quitSafely()
+            recordingSurface.release()
+            super.onDestroy()
+        } catch (exc: Throwable) {
+            Log.e(TAG, "Error in RecordingActivity.onDestroy()", exc)
         }
     }
 
@@ -670,6 +668,7 @@ class RecordingActivity : AppCompatActivity() {
                             WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
 
                         recorder.stop()
+//                        session.abortCaptures()
 
                         window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
 
@@ -732,7 +731,6 @@ class RecordingActivity : AppCompatActivity() {
         cameraThread = generateCameraThread()
         cameraHandler = Handler(cameraThread.looper)
 
-        recorder = MediaRecorder()
         recordingSurface = createRecordingSurface()
 
         if (wordPager.currentItem >= wordList.size) {

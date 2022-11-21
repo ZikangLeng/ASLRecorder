@@ -131,7 +131,12 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
-        // TODO("Not yet implemented")
+        view?.findViewById<VideoView>(R.id.videoPreview)?.holder?.removeCallback(this)
+        timer.cancel()
+        this.mediaPlayer.let {
+            it.stop()
+            it.release()
+        }
     }
 
     // MediaPlayer
