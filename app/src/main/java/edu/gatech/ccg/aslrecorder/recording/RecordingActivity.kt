@@ -521,22 +521,19 @@ class RecordingActivity : AppCompatActivity() {
         recordingLightView.colorFilter = filter
     }
 
-    override fun onRestart() {
-        try {
-            super.onRestart()
-            onStop()
-            onDestroy()
-        } catch (exc: Throwable) {
-            Log.e(TAG, "Error in RecordingActivity.onRestart()", exc)
-        }
-    }
-
     override fun onStop() {
         try {
             if (wordPager.currentItem <= wordList.size) {
                 recorder.stop()
             }
+            recorder.release()
+            session.close()
+            camera.close()
+            cameraThread.quitSafely()
+            recordingSurface.release()
             super.onStop()
+            // Shut down app when no longer recording
+            android.os.Process.killProcess(android.os.Process.myPid())
         } catch (exc: Throwable) {
             Log.e(TAG, "Error in RecordingActivity.onStop()", exc)
         }
@@ -544,8 +541,8 @@ class RecordingActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         try {
-            session.close()
             recorder.release()
+            session.close()
             camera.close()
             cameraThread.quitSafely()
             recordingSurface.release()
