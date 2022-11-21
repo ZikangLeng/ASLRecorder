@@ -254,6 +254,10 @@ fun convertRecordingEntryVideoToString(recordingEntry: RecordingEntryVideo): Str
 }
 
 fun convertRecordingListToString(sessionVideoFiles: HashMap<String, ArrayList<RecordingEntryVideo>>): String {
+    if (sessionVideoFiles.isEmpty()) {
+        return "{}"
+    }
+
     var conversion: StringBuilder = StringBuilder()
 
     conversion.append("{")
