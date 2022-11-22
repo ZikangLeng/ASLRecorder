@@ -525,7 +525,7 @@ class RecordingActivity : AppCompatActivity() {
         try {
             super.onRestart()
             // Shut down app when no longer recording
-            android.os.Process.killProcess(android.os.Process.myPid())
+            this@RecordingActivity.finish()
         } catch (exc: Throwable) {
             Log.e(TAG, "Error in RecordingActivity.onRestart()", exc)
         }
@@ -535,12 +535,13 @@ class RecordingActivity : AppCompatActivity() {
         try {
             if (wordPager.currentItem <= wordList.size) {
                 recorder.stop()
+                session.stopRepeating()
+                session.close()
+                recorder.release()
+                camera.close()
+                cameraThread.quitSafely()
+                recordingSurface.release()
             }
-            recorder.release()
-            session.close()
-            camera.close()
-            cameraThread.quitSafely()
-            recordingSurface.release()
             super.onStop()
         } catch (exc: Throwable) {
             Log.e(TAG, "Error in RecordingActivity.onStop()", exc)
@@ -549,11 +550,6 @@ class RecordingActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         try {
-            recorder.release()
-            session.close()
-            camera.close()
-            cameraThread.quitSafely()
-            recordingSurface.release()
             super.onDestroy()
         } catch (exc: Throwable) {
             Log.e(TAG, "Error in RecordingActivity.onDestroy()", exc)
@@ -673,6 +669,12 @@ class RecordingActivity : AppCompatActivity() {
                             WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
 
                         recorder.stop()
+                        session.stopRepeating()
+                        session.close()
+                        recorder.release()
+                        camera.close()
+                        cameraThread.quitSafely()
+                        recordingSurface.release()
 //                        session.abortCaptures()
 
                         window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)

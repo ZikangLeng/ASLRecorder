@@ -46,20 +46,15 @@ class WordPagerAdapter(activity: AppCompatActivity, words: ArrayList<String>,
     var saveRecordingFragment: SaveRecordingFragment? = null
     var recordingListFragment: RecordingListFragment? = null
 
-    var currPosition: Int = 0
-
     override fun getItemCount() = wordList.size + 2
 
     override fun createFragment(position: Int): Fragment {
         Log.d("WordPagerAdapter", "Page changed to {$position}, {$wordList.size}")
-        if (currPosition != wordList.size + 1) {
-            currPosition = position
-        }
-        return if (currPosition < wordList.size) {
-            val word = this.wordList[currPosition]
+        return if (position < wordList.size) {
+            val word = this.wordList[position]
             val result = WordPromptFragment(word, R.layout.word_prompt)
             result
-        } else if (currPosition == wordList.size) {
+        } else if (position == wordList.size) {
             saveRecordingFragment= SaveRecordingFragment(wordList,
                 sessionFiles, recordingActivity, R.layout.save_record)
             saveRecordingFragment!!
