@@ -135,6 +135,7 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
         timer.cancel()
         this.mediaPlayer.let {
             it.stop()
+            it.reset()
             it.release()
         }
     }
