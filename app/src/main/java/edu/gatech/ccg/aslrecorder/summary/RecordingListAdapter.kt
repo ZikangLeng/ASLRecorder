@@ -36,7 +36,6 @@ import edu.gatech.ccg.aslrecorder.R
 import edu.gatech.ccg.aslrecorder.recording.RecordingActivity
 import edu.gatech.ccg.aslrecorder.recording.RecordingEntryVideo
 import edu.gatech.ccg.aslrecorder.recording.VideoPreviewFragment
-import java.lang.ref.WeakReference
 import java.time.Duration
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
@@ -50,7 +49,7 @@ class RecordingListAdapter(
 
     val words = wordList
     val recordings = sessionFiles.mapValues { it.value.subList(it.value.size - 1, it.value.size) }
-    val activity = WeakReference(activity)
+    val activity = activity
 
     val breakpoints = ArrayList<Int>()
     var totalSize = 0
@@ -79,7 +78,7 @@ class RecordingListAdapter(
 
     class SectionHeader(itemView: View): RecordingListItem(itemView) {
         fun setData(word: String, paginationIndex: Int,
-                    activity: WeakReference<RecordingActivity>) {
+                    activity: RecordingActivity) {
             val label = itemView.findViewById<TextView>(R.id.recordedWord)
             label.text = word
         }
@@ -87,24 +86,24 @@ class RecordingListAdapter(
 
     class RecordingEntry(itemView: View): RecordingListItem(itemView) {
         fun setData(word: String, recordingIndex: Int, entryPosition: Int,
-                    activity: WeakReference<RecordingActivity>,
-                    listAdapter: WeakReference<RecordingListAdapter>) {
+                    activity: RecordingActivity,
+                    listAdapter: RecordingListAdapter) {
             val label = itemView.findViewById<TextView>(R.id.recordingTitle)
             label.text = "Recording #${recordingIndex + 1}"
 
             // TODO: Show recording preview when user taps the title
             val deleteButton = itemView.findViewById<ImageButton>(R.id.deleteRecording)
             deleteButton.setOnClickListener {
-                activity.get()?.deleteMostRecentRecording(word)
+                activity.deleteMostRecentRecording(word)
 
                 // NOTE: This was previously notifyItemRemoved as that is more
                 // efficient, but it would cause crashes when not deleting the very latest
                 // recording for a given word (as the indices would be rearranged)
-                listAdapter.get()?.notifyDataSetChanged()
+                listAdapter.notifyDataSetChanged()
             }
 
             label.setOnClickListener {
-                val entry = listAdapter.get()?.recordings?.get(word)!![recordingIndex]
+                val entry = listAdapter.recordings.get(word)!![recordingIndex]
 
 //                val startTime = listAdapter.get()?.times.g
 
@@ -118,7 +117,7 @@ class RecordingListAdapter(
                 val previewFragment = VideoPreviewFragment(R.layout.recording_preview)
                 previewFragment.arguments = bundle
 
-                val transaction = activity.get()!!.supportFragmentManager.beginTransaction()
+                val transaction = activity.supportFragmentManager.beginTransaction()
                 transaction.add(previewFragment, "videoPreview")
                 transaction.commit()
             }
@@ -150,7 +149,7 @@ class RecordingListAdapter(
             holder.setData(decomposedIndex.second, decomposedIndex.first, activity)
         } else if (holder is RecordingEntry) {
             holder.setData(decomposedIndex.second, decomposedIndex.third!!,
-                           position, activity, WeakReference(this)
+                           position, activity, this
             )
         }
     }

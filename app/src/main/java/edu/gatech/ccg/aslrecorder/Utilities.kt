@@ -267,12 +267,19 @@ fun convertRecordingListToString(sessionVideoFiles: HashMap<String, ArrayList<Re
         for (entry in value) {
             conversion.append("${entry}, ")
         }
-        conversion.delete(conversion.length - 2, conversion.length)
+
+        if (value.isNotEmpty()) {
+            conversion.delete(conversion.length - 2, conversion.length)
+        }
+
         conversion.append("], ")
     }
-    conversion.delete(conversion.length - 2, conversion.length)
+
+    if (sessionVideoFiles.isNotEmpty()) {
+        conversion.delete(conversion.length - 2, conversion.length)
+    }
+
     conversion.append("}")
-//    conversion.append("${sessionVideoFiles[0].file.absolutePath}")
     return conversion.toString()
 }
 
