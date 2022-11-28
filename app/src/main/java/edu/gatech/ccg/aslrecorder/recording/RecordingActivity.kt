@@ -38,7 +38,6 @@ import android.media.ExifInterface.TAG_IMAGE_DESCRIPTION
 import android.media.MediaCodec
 import android.media.MediaRecorder
 import android.media.ThumbnailUtils
-import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
 import android.util.Log
@@ -48,7 +47,6 @@ import android.view.*
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.camera2.Camera2Config
 import androidx.camera.core.*
 import androidx.camera.video.*
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -121,6 +119,7 @@ class RecordingActivity : AppCompatActivity() {
     private var isRecording = false
     private var endSessionOnRecordButtonRelease = false
     private var currentPage: Int = 0
+    private val buttonLock = ReentrantLock()
 
     // Word data
     private lateinit var wordList: ArrayList<String>
@@ -282,8 +281,6 @@ class RecordingActivity : AppCompatActivity() {
             session = createCaptureSession(camera, targets, cameraHandler)
 
             startRecording()
-
-            val buttonLock = ReentrantLock()
 
             /**
              * Set a listener for when the user presses the record button.
@@ -625,7 +622,7 @@ class RecordingActivity : AppCompatActivity() {
                     currentPage = wordPager.currentItem
                     super.onPageSelected(currentPage)
 
-                    Log.d("D", "${wordList.size}")
+                    Log.d("D", "${wordList.size}, ${position}")
 
                     if (currentPage < wordList.size) {
                         // Animate the record button back in, if necessary
