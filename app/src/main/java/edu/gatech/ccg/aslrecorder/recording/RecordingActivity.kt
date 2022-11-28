@@ -116,6 +116,7 @@ class RecordingActivity : AppCompatActivity() {
     // UI state variables
     private var recordButtonDisabled = false
     private var cameraInitialized = false
+    private var isSigning = false
     private var isRecording = false
     private var endSessionOnRecordButtonRelease = false
     private var currentPage: Int = 0
@@ -306,7 +307,7 @@ class RecordingActivity : AppCompatActivity() {
                             Log.d(TAG, "Recording starting")
 
                             segmentStartTime = Calendar.getInstance().time
-                            isRecording = true
+                            isSigning = true
 
                         }
                         wordPager.isUserInputEnabled = false
@@ -360,7 +361,7 @@ class RecordingActivity : AppCompatActivity() {
                         recordButton.backgroundTintList = ColorStateList.valueOf(0xFFF80000.toInt())
                         recordButton.clearColorFilter()
 
-                        isRecording = false
+                        isSigning = false
                         if (endSessionOnRecordButtonRelease) {
                             runOnUiThread {
                                 wordPager.currentItem = wordList.size + 1
@@ -478,6 +479,8 @@ class RecordingActivity : AppCompatActivity() {
 
         recorder.start()
 
+        isRecording = true
+
         sessionStartTime = Calendar.getInstance().time
 
         recordButton.animate().apply {
@@ -502,7 +505,7 @@ class RecordingActivity : AppCompatActivity() {
             }
 
             override fun onFinish() {
-                if (isRecording) {
+                if (isSigning) {
                     endSessionOnRecordButtonRelease = true
                 } else {
                     wordPager.currentItem = wordList.size + 1
@@ -665,14 +668,17 @@ class RecordingActivity : AppCompatActivity() {
                         window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
                             WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
 
-                        recorder.stop()
-                        session.stopRepeating()
-                        session.close()
-                        recorder.release()
-                        camera.close()
-                        cameraThread.quitSafely()
-                        recordingSurface.release()
+                        if (isRecording) {
+                            recorder.stop()
+                            session.stopRepeating()
+                            session.close()
+                            recorder.release()
+                            camera.close()
+                            cameraThread.quitSafely()
+                            recordingSurface.release()
 //                        session.abortCaptures()
+                        }
+                        isRecording = false
 
                         window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
 
