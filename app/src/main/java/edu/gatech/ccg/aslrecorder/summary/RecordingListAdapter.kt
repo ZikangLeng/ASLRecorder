@@ -48,7 +48,7 @@ class RecordingListAdapter(
     RecyclerView.Adapter<RecordingListAdapter.RecordingListItem>() {
 
     val words = wordList
-    val recordings = sessionFiles.mapValues { it.value.subList(it.value.size - 1, it.value.size) }
+    var recordings = sessionFiles.mapValues { it.value.subList(it.value.size - 1, it.value.size) }
     val activity = activity
 
     val breakpoints = ArrayList<Int>()
@@ -72,6 +72,10 @@ class RecordingListAdapter(
 
         Log.d("HELLO", "Total size = $totalSize")
         return totalSize
+    }
+
+    fun updateRecordings(sessionFiles: HashMap<String, ArrayList<RecordingEntryVideo>>) {
+        this@RecordingListAdapter.recordings = sessionFiles.mapValues { it.value.subList(it.value.size - 1, it.value.size) }
     }
 
     open class RecordingListItem(itemView: View): RecyclerView.ViewHolder(itemView)
