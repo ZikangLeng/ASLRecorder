@@ -58,7 +58,9 @@ class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout
 
                     val transaction = requireActivity().supportFragmentManager.beginTransaction()
                     transaction.add(previewFragment, "videoPreview")
-                    transaction.commit()
+                        .setReorderingAllowed(true)
+                        .addToBackStack(null)
+                        .commit()
                 }
             } else {
                 helpButton.isEnabled = false
