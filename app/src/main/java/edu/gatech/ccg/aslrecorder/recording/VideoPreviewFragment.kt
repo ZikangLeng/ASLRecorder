@@ -138,6 +138,7 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
             it.reset()
             it.release()
         }
+        tutorialDesc.close()
     }
 
     // MediaPlayer
