@@ -31,7 +31,10 @@ import android.content.Context
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
-import android.graphics.*
+import android.graphics.Bitmap
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.PorterDuff
 import android.hardware.camera2.*
 import android.media.ExifInterface
 import android.media.ExifInterface.TAG_IMAGE_DESCRIPTION
@@ -39,22 +42,24 @@ import android.media.MediaCodec
 import android.media.MediaRecorder
 import android.media.ThumbnailUtils
 import android.os.*
+import android.os.StrictMode.ThreadPolicy
+import android.os.StrictMode.VmPolicy
 import android.provider.MediaStore
 import android.util.Log
 import android.util.Range
 import android.util.Size
 import android.view.*
-import android.widget.*
+import android.widget.ImageView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.*
-import androidx.camera.video.*
+import androidx.camera.core.CameraSelector
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import edu.gatech.ccg.aslrecorder.*
-import edu.gatech.ccg.aslrecorder.R
 import edu.gatech.ccg.aslrecorder.databinding.ActivityRecordBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -918,6 +923,8 @@ class RecordingActivity : AppCompatActivity() {
                 convertRecordingListToString(sessionVideoFiles)
             )
             exif?.saveAttributes()
+
+            imageFd?.close()
         }
 
         val text = "Video successfully saved"

@@ -75,12 +75,10 @@ class RecordingListFragment(wordList: ArrayList<String>,
     }
 
     fun updateList() {
-        recording.runOnUiThread {
-            recordingListAdapter?.updateRecordings(files)
-            recordingListAdapter?.notifyDataSetChanged()
-            if (this::saveButton.isInitialized) {
-                determineExitButtonAvailability()
-            }
+        recordingListAdapter?.updateRecordings(files)
+        recordingListAdapter?.notifyDataSetChanged()
+        if (this::saveButton.isInitialized) {
+            determineExitButtonAvailability()
         }
     }
 

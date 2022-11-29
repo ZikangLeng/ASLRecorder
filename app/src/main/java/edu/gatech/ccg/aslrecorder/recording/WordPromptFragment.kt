@@ -35,6 +35,7 @@ import edu.gatech.ccg.aslrecorder.R
 class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout) {
 
     var label: String = label
+    private var videoTutorial: AssetFileDescriptor? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -45,7 +46,7 @@ class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout
         val helpButton: Button = view.findViewById(R.id.helpButton)
         // Is there a video for this recording?
         try {
-            val videoTutorial = context?.resources?.assets?.openFd("videos/$label.mp4")
+            videoTutorial = context?.resources?.assets?.openFd("videos/$label.mp4")
 
             if (videoTutorial != null) {
                 helpButton.setOnClickListener {
@@ -69,6 +70,11 @@ class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout
             // No video available, so disable the button
             helpButton.isEnabled = false
         }
+    }
+
+    override fun onDestroyView() {
+        videoTutorial?.close()
+        super.onDestroyView()
     }
 
 }

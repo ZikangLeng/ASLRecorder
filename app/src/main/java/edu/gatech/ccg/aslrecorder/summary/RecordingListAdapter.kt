@@ -59,23 +59,28 @@ class RecordingListAdapter(
     }
 
     fun updateBreakpoints(): Int {
-        breakpoints.clear()
-        breakpoints.add(0)
-        var nextIndex = 0
-        for (word in words) {
-            nextIndex += 1 + (if (recordings.containsKey(word) && recordings[word]!!.isNotEmpty() && recordings[word]!![recordings[word]!!.size - 1].isValid) 1 else 0)
-            breakpoints.add(nextIndex)
+        activity.runOnUiThread {
+            breakpoints.clear()
+            breakpoints.add(0)
+            var nextIndex = 0
+            for (word in words) {
+                nextIndex += 1 + (if (recordings.containsKey(word) && recordings[word]!!.isNotEmpty() && recordings[word]!![recordings[word]!!.size - 1].isValid) 1 else 0)
+                breakpoints.add(nextIndex)
+            }
+
+            breakpoints.removeAt(breakpoints.size - 1)
+            totalSize = nextIndex
+
+            Log.d("HELLO", "Total size = $totalSize")
         }
-
-        breakpoints.removeAt(breakpoints.size - 1)
-        totalSize = nextIndex
-
-        Log.d("HELLO", "Total size = $totalSize")
         return totalSize
     }
 
     fun updateRecordings(sessionFiles: HashMap<String, ArrayList<RecordingEntryVideo>>) {
-        this@RecordingListAdapter.recordings = sessionFiles.mapValues { it.value.subList(it.value.size - 1, it.value.size) }
+        activity.runOnUiThread {
+            this@RecordingListAdapter.recordings =
+                sessionFiles.mapValues { it.value.subList(it.value.size - 1, it.value.size) }
+        }
     }
 
     open class RecordingListItem(itemView: View): RecyclerView.ViewHolder(itemView)
