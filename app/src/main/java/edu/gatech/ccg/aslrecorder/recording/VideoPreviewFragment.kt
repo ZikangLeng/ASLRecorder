@@ -60,6 +60,10 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
     var startTime: Long = 0
     var endTime: Long = 0
 
+    // Since playback cuts out early from testing, adding an extra half second
+    // to the end of a sign's playback could be beneficial to users.
+    private val endingBufferTime: Long = 500
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val word = arguments?.getString("word")!!
@@ -163,8 +167,8 @@ class VideoPreviewFragment(@LayoutRes layout: Int): DialogFragment(layout),
             }
 
             timer.schedule(timerTask,
-                Date(Calendar.getInstance().time.time + (endTime - startTime)),
-                endTime - startTime)
+                Calendar.getInstance().time,
+                endTime - startTime + endingBufferTime)
         }
     }
 
