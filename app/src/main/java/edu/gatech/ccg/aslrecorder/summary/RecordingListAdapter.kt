@@ -126,9 +126,7 @@ class RecordingListAdapter(
                 val previewFragment = VideoPreviewFragment(R.layout.recording_preview)
                 previewFragment.arguments = bundle
 
-                val transaction = activity.supportFragmentManager.beginTransaction()
-                transaction.add(previewFragment, "videoPreview")
-                transaction.commit()
+                previewFragment.show(activity.supportFragmentManager, "videoPreview")
             }
         }
     }

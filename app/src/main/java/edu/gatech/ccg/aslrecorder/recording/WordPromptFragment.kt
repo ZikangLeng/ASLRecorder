@@ -24,6 +24,7 @@
  */
 package edu.gatech.ccg.aslrecorder.recording
 
+import android.content.res.AssetFileDescriptor
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
@@ -57,11 +58,7 @@ class WordPromptFragment(label: String, @LayoutRes layout: Int): Fragment(layout
                     val previewFragment = VideoPreviewFragment(R.layout.recording_preview)
                     previewFragment.arguments = bundle
 
-                    val transaction = requireActivity().supportFragmentManager.beginTransaction()
-                    transaction.add(previewFragment, "videoPreview")
-                        .setReorderingAllowed(true)
-                        .addToBackStack(null)
-                        .commit()
+                    previewFragment.show(requireActivity().supportFragmentManager, "videoPreview")
                 }
             } else {
                 helpButton.isEnabled = false
