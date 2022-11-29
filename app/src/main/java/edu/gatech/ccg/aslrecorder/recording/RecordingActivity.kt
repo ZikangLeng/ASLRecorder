@@ -546,6 +546,8 @@ class RecordingActivity : AppCompatActivity() {
                 camera.close()
                 cameraThread.quitSafely()
                 recordingSurface.release()
+                countdownTimer.cancel()
+                Log.d("onStop", "Stop and release all recording variables")
             }
             super.onStop()
         } catch (exc: Throwable) {
@@ -681,7 +683,7 @@ class RecordingActivity : AppCompatActivity() {
                             camera.close()
                             cameraThread.quitSafely()
                             recordingSurface.release()
-//                        session.abortCaptures()
+                            countdownTimer.cancel()
                         }
                         isRecording = false
 
@@ -695,8 +697,6 @@ class RecordingActivity : AppCompatActivity() {
                         }.start()
 
                         countdownText.visibility = View.GONE
-
-                        countdownTimer.cancel()
 
                         recordButton.animate().apply {
                             alpha(0.0f)
