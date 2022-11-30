@@ -9,8 +9,8 @@ android {
 
     defaultConfig {
         applicationId "edu.gatech.ccg.aslrecorder"
-        minSdkVersion 30
-        targetSdkVersion 30
+        minSdkVersion 31
+        targetSdkVersion 31
         versionCode 1
         versionName "1.0"
 
@@ -35,9 +35,11 @@ android {
         jvmTarget = '1.8'
     }
     packagingOptions {
-        exclude 'META-INF/NOTICE.md'
-        exclude 'META-INF/LICENSE.md'
+        resources {
+            excludes += ['META-INF/NOTICE.md', 'META-INF/LICENSE.md']
+        }
     }
+    namespace 'edu.gatech.ccg.aslrecorder'
 }
 
 allprojects {
