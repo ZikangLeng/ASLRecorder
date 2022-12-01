@@ -11,23 +11,26 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import edu.gatech.ccg.aslrecorder.R
+import edu.gatech.ccg.aslrecorder.*
 import edu.gatech.ccg.aslrecorder.databinding.ActivitySplashRevisedBinding
-import edu.gatech.ccg.aslrecorder.lowestCountRandomChoice
 import edu.gatech.ccg.aslrecorder.recording.RecordingActivity
 import edu.gatech.ccg.aslrecorder.recording.WORDS_PER_SESSION
+import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity.SplashScreenActivity.MAX_SESSIONS
 import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity.SplashScreenActivity.NUM_RECORDINGS
 import kotlin.math.min
 
 
-class SplashScreenActivity: AppCompatActivity() {
+class SplashScreenActivity: ComponentActivity() {
 
     object SplashScreenActivity {
         const val NUM_RECORDINGS = 20
+        const val MAX_SESSIONS = 20
     }
 
     var uid = ""
@@ -57,7 +60,10 @@ class SplashScreenActivity: AppCompatActivity() {
 
     lateinit var recordingCounts: ArrayList<Int>
 
+    private lateinit var handleRecordingResult: ActivityResultLauncher<Intent>
+
     var totalRecordings = 0
+    var totalSessions = 0
 
     val requestUsernamePermissions = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -95,7 +101,7 @@ class SplashScreenActivity: AppCompatActivity() {
                     putExtra("ALL_WORDS", wordList)
                 }
 
-                startActivity(intent)
+                handleRecordingResult.launch(intent)
             } else {
                 // Permission is not granted.
                 val text = "Cannot begin recording since permissions not granted"
@@ -212,7 +218,7 @@ class SplashScreenActivity: AppCompatActivity() {
                         putExtra("ALL_WORDS", wordList)
                     }
 
-                    startActivity(intent)
+                    handleRecordingResult.launch(intent)
                 }
 //                !shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) &&
 //                        !shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE) -> {
@@ -263,6 +269,30 @@ class SplashScreenActivity: AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        handleRecordingResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
+            run {
+                when (result.resultCode) {
+                    RESULT_NO_ERROR -> {
+                        totalSessions += 1
+                    }
+                    RESULT_CLOSE_ALL -> {
+                        setResult(RESULT_CLOSE_ALL)
+                        finish()
+                    }
+                    RESULT_CAMERA_DIED -> {
+                        val text = "Because the camera was disconnected while recording, the recording session was ended."
+                        val toast = Toast.makeText(this, text, Toast.LENGTH_LONG)
+                        toast.show()
+                    }
+                    RESULT_RECORDING_DIED -> {
+                        val text = "Because the recording stopped unexpectedly, the recording session was ended."
+                        val toast = Toast.makeText(this, text, Toast.LENGTH_LONG)
+                        toast.show()
+                    }
+                }
+            }
+        }
+
         super.onCreate(savedInstanceState)
         val binding = ActivitySplashRevisedBinding.inflate(layoutInflater)
         val view = binding.root
@@ -312,6 +342,11 @@ class SplashScreenActivity: AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        Log.d("totalSessions", "Total number of sessions: $totalSessions")
+        if (totalSessions >= MAX_SESSIONS) {
+            setContentView(R.layout.end_of_sitting_message)
+            return
+        }
         setupUI()
     }
 

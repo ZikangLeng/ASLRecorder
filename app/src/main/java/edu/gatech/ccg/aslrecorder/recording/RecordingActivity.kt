@@ -417,7 +417,8 @@ class RecordingActivity : AppCompatActivity() {
 
             override fun onDisconnected(device: CameraDevice) {
                 Log.w(TAG, "Camera $cameraId has been disconnected")
-                this@RecordingActivity.finish()
+                setResult(RESULT_CAMERA_DIED)
+                finish()
             }
 
             override fun onError(device: CameraDevice, error: Int) {
@@ -530,7 +531,8 @@ class RecordingActivity : AppCompatActivity() {
         try {
             super.onRestart()
             // Shut down app when no longer recording
-            this@RecordingActivity.finish()
+            setResult(RESULT_RECORDING_DIED)
+            finish()
         } catch (exc: Throwable) {
             Log.e(TAG, "Error in RecordingActivity.onRestart()", exc)
         }
@@ -802,6 +804,7 @@ class RecordingActivity : AppCompatActivity() {
         }
 
         sendConfirmationEmail()
+        setResult(RESULT_NO_ERROR)
         finish()
     }
 

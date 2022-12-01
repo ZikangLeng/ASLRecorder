@@ -30,16 +30,17 @@ import java.io.File
 import java.lang.Math.min
 import java.security.MessageDigest
 import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
-import kotlin.collections.HashSet
-import kotlin.random.Random
-
 import javax.mail.*
 import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeBodyPart
 import javax.mail.internet.MimeMessage
 import javax.mail.internet.MimeMultipart
+import kotlin.random.Random
+
+const val RESULT_NO_ERROR = 0
+const val RESULT_CLOSE_ALL = 1
+const val RESULT_CAMERA_DIED = 2
+const val RESULT_RECORDING_DIED = 3
 
 /**
  * Selects `count` elements from `list` at random, using the designated seed if given,
