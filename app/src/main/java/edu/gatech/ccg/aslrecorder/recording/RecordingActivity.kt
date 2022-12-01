@@ -76,7 +76,7 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 
-const val WORDS_PER_SESSION = 20
+const val WORDS_PER_SESSION = 10
 
 data class RecordingEntryVideo(val file: File, val videoStart: Date, val signStart: Date, val signEnd: Date, var isValid: Boolean) {
     override fun toString(): String {
@@ -105,7 +105,7 @@ class RecordingActivity : AppCompatActivity() {
         private const val RECORDING_HEIGHT = 2592
         private const val RECORDING_WIDTH = 1944
 
-        private const val TARGET_RECORDINGS_PER_WORD = 20
+        private const val TARGET_RECORDINGS_PER_WORD = 10
         private const val APP_VERSION = "1.1"
     }
 

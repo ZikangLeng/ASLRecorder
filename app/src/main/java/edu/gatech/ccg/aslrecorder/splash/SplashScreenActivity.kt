@@ -29,7 +29,7 @@ import kotlin.math.min
 class SplashScreenActivity: ComponentActivity() {
 
     object SplashScreenActivity {
-        const val NUM_RECORDINGS = 20
+        const val NUM_RECORDINGS = 10
         const val MAX_SESSIONS = 20
     }
 
@@ -354,10 +354,10 @@ class SplashScreenActivity: ComponentActivity() {
         words = lowestCountRandomChoice(wordList, recordingCounts, WORDS_PER_SESSION)
 
         nextSessionWords = findViewById(R.id.recordingListColumn1)
-        nextSessionWords.text = words.subList(0, 10).joinToString("\n")
+        nextSessionWords.text = words.subList(0, 5).joinToString("\n")
 
         nextSessionWords = findViewById(R.id.recordingListColumn2)
-        nextSessionWords.text = words.subList(10, 20).joinToString("\n")
+        nextSessionWords.text = words.subList(5, 10).joinToString("\n")
     }
 
     companion object {
