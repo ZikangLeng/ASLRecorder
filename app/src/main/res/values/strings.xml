@@ -266,18 +266,15 @@
         <item>alligator</item>
         <item>animal</item>
         <item>another</item>
-        <item>ant</item>
         <item>any</item>
         <item>apple</item>
         <item>arm</item>
-        <item>asleep</item>
         <item>aunt</item>
         <item>awake</item>
         <item>backyard</item>
         <item>bad</item>
         <item>balloon</item>
         <item>bath</item>
-        <item>bathroom</item>
         <item>because</item>
         <item>bed</item>
         <item>bedroom</item>
@@ -289,23 +286,24 @@
         <item>black</item>
         <item>blow</item>
         <item>blue</item>
+        <item>boat</item>
         <item>book</item>
         <item>boy</item>
+        <item>brother</item>
         <item>brown</item>
         <item>bug</item>
         <item>bye</item>
         <item>call (on phone)</item>
         <item>can</item>
-        <item>candy</item>
         <item>car</item>
         <item>carrot</item>
         <item>cat</item>
         <item>cereal</item>
         <item>chair</item>
         <item>cheek</item>
-        <item>chicken</item>
         <item>child</item>
         <item>chin</item>
+        <item>chocolate</item>
         <item>clean</item>
         <item>close</item>
         <item>closet</item>
@@ -320,8 +318,8 @@
         <item>dance</item>
         <item>dirty</item>
         <item>dog</item>
+        <item>doll</item>
         <item>donkey</item>
-        <item>door</item>
         <item>down</item>
         <item>drawer</item>
         <item>drink</item>
@@ -330,13 +328,14 @@
         <item>dryer</item>
         <item>duck</item>
         <item>ear</item>
-        <item>eat</item>
         <item>elephant</item>
         <item>empty</item>
+        <item>every</item>
         <item>eye</item>
         <item>face</item>
         <item>fall</item>
         <item>farm</item>
+        <item>fast</item>
         <item>feet</item>
         <item>find</item>
         <item>fine</item>
@@ -352,12 +351,12 @@
         <item>french fries</item>
         <item>frog</item>
         <item>garbage</item>
+        <item>gift</item>
         <item>giraffe</item>
         <item>girl</item>
         <item>give</item>
         <item>glass (window)</item>
         <item>go</item>
-        <item>good</item>
         <item>goose</item>
         <item>grandma</item>
         <item>grandpa</item>
@@ -368,14 +367,15 @@
         <item>happy</item>
         <item>hat</item>
         <item>hate</item>
-        <item>have to</item>
         <item>have</item>
+        <item>have to</item>
         <item>he, she, it</item>
         <item>head</item>
         <item>hear</item>
         <item>helicopter</item>
         <item>hello</item>
         <item>hen</item>
+        <item>hide</item>
         <item>high</item>
         <item>home</item>
         <item>horse</item>
@@ -387,7 +387,6 @@
         <item>jacket</item>
         <item>jeans</item>
         <item>jump</item>
-        <item>kick</item>
         <item>kiss</item>
         <item>kitty</item>
         <item>lamp</item>
@@ -407,12 +406,11 @@
         <item>mitten</item>
         <item>mom</item>
         <item>moon</item>
+        <item>morning</item>
         <item>mouse</item>
         <item>mouth</item>
         <item>nap</item>
         <item>napkin</item>
-        <item>naughty</item>
-        <item>night-night</item>
         <item>night</item>
         <item>no</item>
         <item>noisy</item>
@@ -427,11 +425,11 @@
         <item>outside</item>
         <item>owie</item>
         <item>owl</item>
+        <item>pajamas</item>
         <item>pen</item>
         <item>pencil</item>
         <item>penny</item>
         <item>person</item>
-        <item>pick</item>
         <item>pig</item>
         <item>pizza</item>
         <item>please</item>
@@ -442,12 +440,14 @@
         <item>pretty</item>
         <item>puppy</item>
         <item>puzzle</item>
+        <item>quiet</item>
         <item>radio</item>
         <item>rain</item>
         <item>read</item>
         <item>red</item>
         <item>refrigerator</item>
         <item>ride</item>
+        <item>room</item>
         <item>sad</item>
         <item>same</item>
         <item>say</item>
@@ -457,8 +457,10 @@
         <item>shirt</item>
         <item>shoe</item>
         <item>shower</item>
+        <item>sick</item>
         <item>sleep</item>
         <item>sleepy</item>
+        <item>smile</item>
         <item>snack</item>
         <item>snow</item>
         <item>stairs</item>
@@ -477,9 +479,9 @@
         <item>think</item>
         <item>thirsty</item>
         <item>tiger</item>
+        <item>time</item>
         <item>tomorrow</item>
         <item>tongue</item>
-        <item>tonight</item>
         <item>tooth</item>
         <item>toothbrush</item>
         <item>touch</item>
@@ -492,7 +494,6 @@
         <item>vacuum</item>
         <item>wait</item>
         <item>wake</item>
-        <item>watch</item>
         <item>water</item>
         <item>we, us</item>
         <item>wet</item>
@@ -501,7 +502,6 @@
         <item>who</item>
         <item>why</item>
         <item>will</item>
-        <item>wish</item>
         <item>wolf</item>
         <item>yellow</item>
         <item>yes</item>

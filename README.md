@@ -40,18 +40,15 @@ all
 alligator
 animal
 another
-ant
 any
 apple
 arm
-asleep
 aunt
 awake
 backyard
 bad
 balloon
 bath
-bathroom
 because
 bed
 bedroom
@@ -63,23 +60,24 @@ bird
 black
 blow
 blue
+boat
 book
 boy
+brother
 brown
 bug
 bye
 call (on phone)
 can
-candy
 car
 carrot
 cat
 cereal
 chair
 cheek
-chicken
 child
 chin
+chocolate
 clean
 close
 closet
@@ -94,8 +92,8 @@ dad
 dance
 dirty
 dog
+doll
 donkey
-door
 down
 drawer
 drink
@@ -104,13 +102,14 @@ dry
 dryer
 duck
 ear
-eat
 elephant
 empty
+every
 eye
 face
 fall
 farm
+fast
 feet
 find
 fine
@@ -126,12 +125,12 @@ for
 french fries
 frog
 garbage
+gift
 giraffe
 girl
 give
 glass (window)
 go
-good
 goose
 grandma
 grandpa
@@ -142,14 +141,15 @@ hair
 happy
 hat
 hate
-have to
 have
+have to
 he, she, it
 head
 hear
 helicopter
 hello
 hen
+hide
 high
 home
 horse
@@ -161,7 +161,6 @@ into
 jacket
 jeans
 jump
-kick
 kiss
 kitty
 lamp
@@ -181,12 +180,11 @@ mine, my
 mitten
 mom
 moon
+morning
 mouse
 mouth
 nap
 napkin
-naughty
-night-night
 night
 no
 noisy
@@ -201,11 +199,11 @@ orange
 outside
 owie
 owl
+pajamas
 pen
 pencil
 penny
 person
-pick
 pig
 pizza
 please
@@ -216,12 +214,14 @@ pretend
 pretty
 puppy
 puzzle
+quiet
 radio
 rain
 read
 red
 refrigerator
 ride
+room
 sad
 same
 say
@@ -231,8 +231,10 @@ shhh
 shirt
 shoe
 shower
+sick
 sleep
 sleepy
+smile
 snack
 snow
 stairs
@@ -251,9 +253,9 @@ there
 think
 thirsty
 tiger
+time
 tomorrow
 tongue
-tonight
 tooth
 toothbrush
 touch
@@ -266,7 +268,6 @@ up
 vacuum
 wait
 wake
-watch
 water
 we, us
 wet
@@ -275,7 +276,6 @@ white
 who
 why
 will
-wish
 wolf
 yellow
 yes
