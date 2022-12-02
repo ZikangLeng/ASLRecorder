@@ -74,6 +74,11 @@ class RecordingListFragment(wordList: ArrayList<String>,
         determineExitButtonAvailability()
     }
 
+    override fun onDestroyView() {
+        recordingListAdapter = null
+        super.onDestroyView()
+    }
+
     fun updateList() {
         recordingListAdapter?.updateRecordings(files)
         recordingListAdapter?.notifyDataSetChanged()

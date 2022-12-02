@@ -132,6 +132,9 @@ class RecordingListAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecordingListItem {
+        if (parent.layoutTransition != null) {
+            parent.layoutTransition.setAnimateParentHierarchy(false)
+        }
         return when (viewType) {
             1 -> {
                 val view = LayoutInflater.from(parent.context)

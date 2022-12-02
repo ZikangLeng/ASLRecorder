@@ -42,8 +42,6 @@ import android.media.MediaCodec
 import android.media.MediaRecorder
 import android.media.ThumbnailUtils
 import android.os.*
-import android.os.StrictMode.ThreadPolicy
-import android.os.StrictMode.VmPolicy
 import android.provider.MediaStore
 import android.util.Log
 import android.util.Range
@@ -355,10 +353,10 @@ class RecordingActivity : AppCompatActivity() {
                             ))
 
                             val wordPagerAdapter = wordPager.adapter as WordPagerAdapter
-                            wordPagerAdapter.updateRecordingList()
 
                             recordButton.performHapticFeedback(HapticFeedbackConstants.REJECT)
 
+                            Log.d("currentItem", "wordPager is incremented from ${wordPager.currentItem}")
                             wordPager.currentItem += 1
 
                         }
@@ -413,10 +411,13 @@ class RecordingActivity : AppCompatActivity() {
         handler: Handler? = null
     ): CameraDevice = suspendCancellableCoroutine { cont ->
         manager.openCamera(cameraId, object : CameraDevice.StateCallback() {
-            override fun onOpened(device: CameraDevice) = cont.resume(device)
+            override fun onOpened(device: CameraDevice) {
+                Log.d("openCamera", "New camera created with ID $cameraId")
+                cont.resume(device)
+            }
 
             override fun onDisconnected(device: CameraDevice) {
-                Log.w(TAG, "Camera $cameraId has been disconnected")
+                Log.w("openCamera", "Camera $cameraId has been disconnected")
                 setResult(RESULT_CAMERA_DIED)
                 finish()
             }
@@ -545,12 +546,15 @@ class RecordingActivity : AppCompatActivity() {
                 session.stopRepeating()
                 session.close()
                 recorder.release()
+//                cameraManager
                 camera.close()
                 cameraThread.quitSafely()
                 recordingSurface.release()
                 countdownTimer.cancel()
+                cameraHandler.removeCallbacksAndMessages(null)
                 Log.d("onStop", "Stop and release all recording variables")
             }
+            wordPager.adapter = null
             super.onStop()
         } catch (exc: Throwable) {
             Log.e(TAG, "Error in RecordingActivity.onStop()", exc)
@@ -682,10 +686,12 @@ class RecordingActivity : AppCompatActivity() {
                             session.stopRepeating()
                             session.close()
                             recorder.release()
+//                cameraManager
                             camera.close()
                             cameraThread.quitSafely()
                             recordingSurface.release()
                             countdownTimer.cancel()
+                            cameraHandler.removeCallbacksAndMessages(null)
                         }
                         isRecording = false
 
