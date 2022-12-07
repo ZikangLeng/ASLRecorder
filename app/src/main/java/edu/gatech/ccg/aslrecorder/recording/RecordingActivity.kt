@@ -356,18 +356,23 @@ class RecordingActivity : AppCompatActivity() {
 
                             recordButton.performHapticFeedback(HapticFeedbackConstants.REJECT)
 
-                            Log.d("currentItem", "wordPager is incremented from ${wordPager.currentItem}")
-                            wordPager.currentItem += 1
-
-                        }
-                        wordPager.isUserInputEnabled = true
-                        recordButton.backgroundTintList = ColorStateList.valueOf(0xFFF80000.toInt())
-                        recordButton.clearColorFilter()
-
-                        isSigning = false
-                        if (endSessionOnRecordButtonRelease) {
                             runOnUiThread {
-                                wordPager.currentItem = wordList.size + 1
+                                Log.d(
+                                    "currentItem",
+                                    "wordPager is incremented from ${wordPager.currentItem}"
+                                )
+                                wordPager.setCurrentItem(wordPager.currentItem + 1, false)
+                            }
+
+                            wordPager.isUserInputEnabled = true
+                            recordButton.backgroundTintList = ColorStateList.valueOf(0xFFF80000.toInt())
+                            recordButton.clearColorFilter()
+
+                            isSigning = false
+                            if (endSessionOnRecordButtonRelease) {
+                                runOnUiThread {
+                                    wordPager.currentItem = wordList.size + 1
+                                }
                             }
                         }
                     }
