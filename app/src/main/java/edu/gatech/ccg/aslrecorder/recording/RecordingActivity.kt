@@ -639,17 +639,15 @@ class RecordingActivity : AppCompatActivity() {
         wordPager.adapter = WordPagerAdapter(this, wordList, sessionVideoFiles)
         wordPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                runOnUiThread {
-                    currentPage = wordPager.currentItem
-                    super.onPageSelected(currentPage)
+                currentPage = wordPager.currentItem
+                super.onPageSelected(currentPage)
 
-                    Log.d("D", "${wordList.size}, ${position}")
+                Log.d("D", "${wordList.size}, ${position}")
 
-                    if (currentPage < wordList.size) {
-                        // Animate the record button back in, if necessary
-
+                if (currentPage < wordList.size) {
+                    // Animate the record button back in, if necessary
+                    runOnUiThread {
                         this@RecordingActivity.currentWord = wordList[currentPage]
-
                         countMap[currentWord] = countMap.getOrDefault(currentWord, 0)
                         title = "${currentPage + 1} of ${wordList.size}"
 
@@ -663,7 +661,9 @@ class RecordingActivity : AppCompatActivity() {
                                 duration = 250
                             }.start()
                         }
-                    } else if (currentPage == wordList.size) {
+                    }
+                } else if (currentPage == wordList.size) {
+                    runOnUiThread {
                         title = "Save or continue?"
 
                         recordButton.isClickable = false
@@ -674,32 +674,37 @@ class RecordingActivity : AppCompatActivity() {
                             alpha(0.0f)
                             duration = 250
                         }.start()
+                    }
+                } else {
+                    // Hide record button and move the slider to the front (so users can't
+                    // accidentally press record)
+                    Log.d(
+                        TAG, "Recording stopped. Check " +
+                                this@RecordingActivity.getExternalFilesDir(null)?.absolutePath
+                    )
 
-                    } else {
-                        // Hide record button and move the slider to the front (so users can't
-                        // accidentally press record)
-                        Log.d(
-                            TAG, "Recording stopped. Check " +
-                                    this@RecordingActivity.getExternalFilesDir(null)?.absolutePath
+                    runOnUiThread {
+                        window.setFlags(
+                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                         )
+                    }
 
-                        window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
-
-                        if (isRecording) {
-                            recorder.stop()
-                            session.stopRepeating()
-                            session.close()
-                            recorder.release()
+                    if (isRecording) {
+                        recorder.stop()
+                        session.stopRepeating()
+                        session.close()
+                        recorder.release()
 //                cameraManager
-                            camera.close()
-                            cameraThread.quitSafely()
-                            recordingSurface.release()
-                            countdownTimer.cancel()
-                            cameraHandler.removeCallbacksAndMessages(null)
-                        }
-                        isRecording = false
+                        camera.close()
+                        cameraThread.quitSafely()
+                        recordingSurface.release()
+                        countdownTimer.cancel()
+                        cameraHandler.removeCallbacksAndMessages(null)
+                    }
+                    isRecording = false
 
+                    runOnUiThread {
                         window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
 
                         wordPager.isUserInputEnabled = false
