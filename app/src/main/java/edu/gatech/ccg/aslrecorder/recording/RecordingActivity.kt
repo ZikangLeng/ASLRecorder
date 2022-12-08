@@ -104,7 +104,7 @@ class RecordingActivity : AppCompatActivity() {
         private const val RECORDING_WIDTH = 1944
 
         private const val TARGET_RECORDINGS_PER_WORD = 10
-        private const val APP_VERSION = "1.1"
+        private const val APP_VERSION = "1.1.5"
     }
 
     private lateinit var context: Context
