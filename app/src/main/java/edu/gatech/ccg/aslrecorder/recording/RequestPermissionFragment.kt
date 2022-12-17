@@ -31,6 +31,7 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
+import edu.gatech.ccg.aslrecorder.Constants.RECORDINGS_PER_WORD
 import edu.gatech.ccg.aslrecorder.R
 import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity
 
@@ -39,19 +40,15 @@ class RequestPermissionFragment(label: String, @LayoutRes layout: Int): Fragment
     var label: String = label
     lateinit var counter: TextView
 
-    private var TARGET_RECORDINGS: Int = 0
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val textField = view.findViewById<TextView>(R.id.promptText)
         textField.text = label
-
-        TARGET_RECORDINGS = SplashScreenActivity.SplashScreenActivity.NUM_RECORDINGS
     }
 
     fun updateWordCount(count: Int) {
-        counter.text = "$count / $TARGET_RECORDINGS"
+        counter.text = "$count / $RECORDINGS_PER_WORD"
     }
 
 }

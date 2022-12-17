@@ -58,6 +58,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import edu.gatech.ccg.aslrecorder.*
+import edu.gatech.ccg.aslrecorder.Constants.RECORDINGS_PER_WORD
+import edu.gatech.ccg.aslrecorder.Constants.WORDS_PER_SESSION
 import edu.gatech.ccg.aslrecorder.databinding.ActivityRecordBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -72,9 +74,6 @@ import kotlin.concurrent.withLock
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
-
-
-const val WORDS_PER_SESSION = 10
 
 data class RecordingEntryVideo(val file: File, val videoStart: Date, val signStart: Date, val signEnd: Date, var isValid: Boolean) {
     override fun toString(): String {
@@ -103,8 +102,7 @@ class RecordingActivity : AppCompatActivity() {
         private const val RECORDING_HEIGHT = 2592
         private const val RECORDING_WIDTH = 1944
 
-        private const val TARGET_RECORDINGS_PER_WORD = 10
-        private const val APP_VERSION = "1.1.5"
+        private const val APP_VERSION = "1.1.6"
     }
 
     private lateinit var context: Context
@@ -847,7 +845,7 @@ class RecordingActivity : AppCompatActivity() {
         val subject = "Recording confirmation for $userId"
         val wordListWithCounts = wordList.joinToString(", ", "", "", -1,
         "") {
-            "${it.first} (${it.second} / $TARGET_RECORDINGS_PER_WORD)"
+            "${it.first} (${it.second} / ${RECORDINGS_PER_WORD})"
         }
         var body = "The user '$userId' recorded the following ${wordList.size} word(s) to the " +
                 "file $filename.mp4 (MD5 = $fileDigest): $wordListWithCounts\n\n"
@@ -858,7 +856,7 @@ class RecordingActivity : AppCompatActivity() {
         }
 
         body += "Overall progress: $totalWordCount / " +
-                "${TARGET_RECORDINGS_PER_WORD * completeWordList.size}\n\n"
+                "${RECORDINGS_PER_WORD * completeWordList.size}\n\n"
 
         fun formatTime(millis: Long): String {
             val minutes = millis / 60_000

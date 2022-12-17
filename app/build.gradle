@@ -11,8 +11,8 @@ android {
         applicationId "edu.gatech.ccg.aslrecorder"
         minSdkVersion 31
         targetSdkVersion 31
-        versionCode 6
-        versionName "1.1.5"
+        versionCode 7
+        versionName "1.1.6"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -31,9 +31,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import edu.gatech.ccg.aslrecorder.Constants.WORDS_PER_SESSION
 import edu.gatech.ccg.aslrecorder.R
 import edu.gatech.ccg.aslrecorder.recording.RecordingActivity
-import edu.gatech.ccg.aslrecorder.recording.WORDS_PER_SESSION
 
 const val DISABLE_RANDOM = false
 const val RANDOM_SEED = 1L

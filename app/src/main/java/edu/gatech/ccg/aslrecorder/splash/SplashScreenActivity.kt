@@ -18,20 +18,15 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import edu.gatech.ccg.aslrecorder.*
+import edu.gatech.ccg.aslrecorder.Constants.MAX_RECORDINGS_IN_SITTING
+import edu.gatech.ccg.aslrecorder.Constants.RECORDINGS_PER_WORD
+import edu.gatech.ccg.aslrecorder.Constants.WORDS_PER_SESSION
 import edu.gatech.ccg.aslrecorder.databinding.ActivitySplashRevisedBinding
 import edu.gatech.ccg.aslrecorder.recording.RecordingActivity
-import edu.gatech.ccg.aslrecorder.recording.WORDS_PER_SESSION
-import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity.SplashScreenActivity.MAX_SESSIONS
-import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity.SplashScreenActivity.NUM_RECORDINGS
 import kotlin.math.min
 
 
 class SplashScreenActivity: ComponentActivity() {
-
-    object SplashScreenActivity {
-        const val NUM_RECORDINGS = 10
-        const val MAX_SESSIONS = 20
-    }
 
     var uid = ""
     lateinit var uidBox: TextView
@@ -133,7 +128,7 @@ class SplashScreenActivity: ComponentActivity() {
             compareByDescending<Pair<Int, String>> { it.first }.thenBy { it.second }
         )
 
-        if (statsShowableWords.size > 0 && statsShowableWords[statsShowableWords.lastIndex].first >= NUM_RECORDINGS) {
+        if (statsShowableWords.size > 0 && statsShowableWords[statsShowableWords.lastIndex].first >= RECORDINGS_PER_WORD) {
             val dialog = this.let {
                 val builder = AlertDialog.Builder(it)
                 builder.setTitle("\uD83C\uDF89 Congratulations, you've finished recording!")
@@ -181,7 +176,7 @@ class SplashScreenActivity: ComponentActivity() {
         weights = ArrayList()
         for (count in recordingCounts) {
 //            weights.add(max(1.0f, totalRecordings.toFloat()) / max(1.0f, count.toFloat()))
-            weights.add(min(1.0e-3f, (NUM_RECORDINGS - count).toFloat() / (NUM_RECORDINGS*wordList.size - totalRecordings).toFloat()))
+            weights.add(min(1.0e-3f, (RECORDINGS_PER_WORD - count).toFloat() / (RECORDINGS_PER_WORD*wordList.size - totalRecordings).toFloat()))
         }
     }
 
@@ -343,7 +338,7 @@ class SplashScreenActivity: ComponentActivity() {
     override fun onResume() {
         super.onResume()
         Log.d("totalSessions", "Total number of sessions: $totalSessions")
-        if (totalSessions >= MAX_SESSIONS) {
+        if (totalSessions >= MAX_RECORDINGS_IN_SITTING) {
             setContentView(R.layout.end_of_sitting_message)
             return
         }
