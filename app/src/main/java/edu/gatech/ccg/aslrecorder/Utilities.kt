@@ -30,6 +30,8 @@ import java.io.File
 import java.lang.Math.min
 import java.security.MessageDigest
 import java.util.*
+import javax.activation.DataHandler
+import javax.activation.FileDataSource
 import javax.mail.*
 import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeBodyPart
@@ -333,7 +335,7 @@ fun <T> lowestCountRandomChoice(list: List<T>, numRecordings: List<Int>, count: 
  * Based on code by Stack Overflow user Blundell (CC BY-SA 4.0)
  * https://stackoverflow.com/a/60090464
  */
-fun sendEmail(from: String, to: List<String>, subject: String, content: String, password: String) {
+fun sendEmail(from: String, to: List<String>, subject: String, content: String, password: String, wristFile: File) {
     val props = Properties()
 
     val server = "smtp.gmail.com"
@@ -351,8 +353,8 @@ fun sendEmail(from: String, to: List<String>, subject: String, content: String, 
     props["mail.smtp.ssl.trust"] = server
     props["mail.mime.charset"] = "UTF-8"
 
-    props["mail.smtp.connectiontimeout"] = "10000"
-    props["mail.smtp.timeout"] = "10000"
+    props["mail.smtp.connectiontimeout"] = "50000"
+    props["mail.smtp.timeout"] = "50000"
 
     val msg: Message = MimeMessage(Session.getDefaultInstance(props, object : Authenticator() {
         override fun getPasswordAuthentication() = auth
@@ -374,6 +376,27 @@ fun sendEmail(from: String, to: List<String>, subject: String, content: String, 
         addBodyPart(MimeBodyPart().apply {
             setText(content, "iso-8859-1")
         })
+    })
+
+    val contents = wristFile.readText()
+    println(contents)
+
+    val wristSource = FileDataSource(wristFile)
+    val fileBodyPart = MimeBodyPart()
+    fileBodyPart.attachFile(wristFile)
+    //fileBodyPart.setHeader("Content-Type", "text/csv")
+    fileBodyPart.setHeader("Content-Type", "plain/text")
+    msg.setContent(MimeMultipart().apply {
+        addBodyPart(MimeBodyPart().apply {
+            setText(content, "iso-8859-1")
+        })
+//        addBodyPart(MimeBodyPart().apply {
+//            dataHandler = DataHandler(wristSource)
+//            disposition = Part.ATTACHMENT
+//            fileName = wristFile.name
+//
+//        })
+        addBodyPart(fileBodyPart)
     })
 
     Log.d("EMAIL", "Attempting to send email with subject '$subject' and " +

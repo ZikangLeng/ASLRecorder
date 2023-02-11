@@ -26,8 +26,8 @@ package edu.gatech.ccg.aslrecorder.recording
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.ContentValues
-import android.content.Context
+import android.bluetooth.BluetoothDevice
+import android.content.*
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
@@ -56,7 +56,17 @@ import androidx.camera.core.CameraSelector
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
+import bolts.Task
+import com.github.mikephil.charting.data.LineData
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.mbientlab.metawear.Data
+import com.mbientlab.metawear.MetaWearBoard
+import com.mbientlab.metawear.Route
+import com.mbientlab.metawear.UnsupportedModuleException
+import com.mbientlab.metawear.android.BtleService
+import com.mbientlab.metawear.builder.RouteComponent
+import com.mbientlab.metawear.data.Acceleration
+import com.mbientlab.metawear.module.Accelerometer
 import edu.gatech.ccg.aslrecorder.*
 import edu.gatech.ccg.aslrecorder.Constants.RECORDINGS_PER_WORD
 import edu.gatech.ccg.aslrecorder.Constants.WORDS_PER_SESSION
@@ -67,6 +77,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
@@ -89,7 +100,18 @@ data class RecordingEntryVideo(val file: File, val videoStart: Date, val signSta
  * @since   October 4, 2021
  * @version 1.1.0
  */
-class RecordingActivity : AppCompatActivity() {
+class RecordingActivity : AppCompatActivity(), ServiceConnection {
+    private var boardReady = false
+    private var btDevice: BluetoothDevice? = null
+    protected var mwBoard: MetaWearBoard? = null
+    private var accelerometer: Accelerometer? = null
+    protected var streamRoute: Route? = null
+    private val ACC_RANG = 4f
+    private val ACC_FREQ = 50f
+    protected var samplePeriod = 0f
+    val wristDataList = arrayListOf<Triple<Float, Float,Float>>()
+    private lateinit var wristFilename: String
+    lateinit var wristFile:File
     companion object {
         private val TAG = RecordingActivity::class.java.simpleName
 
@@ -205,13 +227,15 @@ class RecordingActivity : AppCompatActivity() {
             = rec.apply {
         setVideoSource(MediaRecorder.VideoSource.SURFACE)
         setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+        //setOutputFormat(MediaRecorder.OutputFormat.DEFAULT)
         setOutputFile(outputFile.absolutePath)
         setVideoEncodingBitRate(RECORDER_VIDEO_BITRATE)
-        setVideoFrameRate(30)
+        setVideoFrameRate(20)
 
         // TODO: Device-specific!
         setVideoSize(RECORDING_HEIGHT, RECORDING_WIDTH)
         setVideoEncoder(MediaRecorder.VideoEncoder.HEVC)
+        //setVideoEncoder(MediaRecorder.VideoEncoder.DEFAULT)
         setInputSurface(surface)
 
         /**
@@ -556,6 +580,7 @@ class RecordingActivity : AppCompatActivity() {
                 countdownTimer.cancel()
                 cameraHandler.removeCallbacksAndMessages(null)
                 Log.d("onStop", "Stop and release all recording variables")
+                concludeSensorRecording()
             }
             wordPager.adapter = null
             super.onStop()
@@ -570,12 +595,21 @@ class RecordingActivity : AppCompatActivity() {
         } catch (exc: Throwable) {
             Log.e(TAG, "Error in RecordingActivity.onDestroy()", exc)
         }
+        concludeSensorRecording()
     }
 
     fun generateCameraThread() = HandlerThread("CameraThread").apply { start() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        btDevice =
+            intent.getParcelableExtra<BluetoothDevice>("WRIST")
+        applicationContext.bindService(
+            Intent(this, BtleService::class.java),
+            this,
+            BIND_AUTO_CREATE
+        )
+
         binding = ActivityRecordBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
@@ -625,6 +659,7 @@ class RecordingActivity : AppCompatActivity() {
         val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss.SSS", Locale.US)
         val currentWord = this@RecordingActivity.currentWord
         filename = "${userUID}-${recordingCategory}-${sdf.format(Date())}"
+        wristFilename = "${userUID}-wrist-${recordingCategory}-${sdf.format(Date())}.csv"
         metadataFilename = filename
 
         // Set title bar text
@@ -676,6 +711,10 @@ class RecordingActivity : AppCompatActivity() {
                 } else {
                     // Hide record button and move the slider to the front (so users can't
                     // accidentally press record)
+                    concludeSensorRecording()
+                    Log.d(
+                        "MyTag", "sensor recording stopped"
+                    )
                     Log.d(
                         TAG, "Recording stopped. Check " +
                                 this@RecordingActivity.getExternalFilesDir(null)?.absolutePath
@@ -780,6 +819,8 @@ class RecordingActivity : AppCompatActivity() {
     }
 
     fun concludeRecordingSession() {
+        //concludeSensorRecording()
+
         val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
         with (prefs.edit()) {
             for (entry in sessionVideoFiles) {
@@ -890,7 +931,7 @@ class RecordingActivity : AppCompatActivity() {
             kotlin.run {
                 Log.d("EMAIL", "Running thread to send email...")
                 sendEmail("gtsignstudy.confirmation@gmail.com",
-                    listOf("gtsignstudy@gmail.com"), subject, body, emailPassword)
+                    listOf("kevenleng2003@gmail.com"), subject, body, emailPassword, context.getFileStreamPath(wristFilename))
             }
         }
 
@@ -947,5 +988,94 @@ class RecordingActivity : AppCompatActivity() {
         val text = "Video successfully saved"
         val toast = Toast.makeText(this, text, Toast.LENGTH_SHORT)
         toast.show()
+    }
+
+    fun concludeSensorRecording() {
+        accelerometer!!.stop()
+        (if (accelerometer!!.packedAcceleration() == null) accelerometer!!.packedAcceleration() else accelerometer!!.acceleration()).stop()
+        if (streamRoute != null) {
+            streamRoute!!.remove()
+            streamRoute = null
+        }
+        dataToCSV()
+
+        wristDataList.clear()
+    }
+
+    fun dataToCSV() {
+        //wristFile = File(wristFilename)
+        val dataType = "acceleration"
+        val CSV_HEADER = String.format("time,x-%s,y-%s,z-%s%n", dataType, dataType, dataType)
+        try {
+            val fos: FileOutputStream = openFileOutput(wristFilename, MODE_PRIVATE)
+            fos.write(CSV_HEADER.toByteArray())
+
+            for (i in 0 until wristDataList.size) {
+                fos.write(
+                    String.format(
+                        Locale.US, "%.3f,%.3f,%.3f,%.3f%n", i * samplePeriod,
+                        wristDataList[i].first,
+                        wristDataList[i].second,
+                        wristDataList[i].third
+                    ).toByteArray()
+                )
+            }
+            fos.close()
+        } catch (e:Exception ) {
+            e.printStackTrace()
+        }
+
+
+    }
+
+    override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+        if (btDevice == null){
+            Log.i("Mytag", "btDevice is null")
+        }
+        mwBoard = (service as BtleService.LocalBinder).getMetaWearBoard(btDevice)
+        //mwBoard.onUnexpectedDisconnect(UnexpectedDisconnectHandler { status: Int -> attemptReconnect() })
+        try {
+            boardReady = true
+            boardReady()
+            setup()
+        } catch (e: UnsupportedModuleException) {
+            //unsupportedModule()
+        }
+    }
+
+    override fun onServiceDisconnected(componentName: ComponentName?) {
+    }
+
+    fun getBtDevice(): BluetoothDevice? {
+        return btDevice
+    }
+
+    protected fun setup() {
+        val editor = accelerometer!!.configure()
+        editor.odr(ACC_FREQ)
+        editor.range(ACC_RANG)
+        editor.commit()
+        samplePeriod = 1 / accelerometer!!.odr
+        val producer =
+            if (accelerometer!!.packedAcceleration() == null) accelerometer!!.packedAcceleration() else accelerometer!!.acceleration()
+        producer.addRouteAsync { source: RouteComponent ->
+            source.stream { data: Data, env: Array<Any?>? ->
+                val value =
+                    data.value(
+                        Acceleration::class.java
+                    )
+                println(value)
+                wristDataList.add(Triple(value.x(), value.y(), value.z()))
+            }
+        }.continueWith<Any?> { task: Task<Route> ->
+            streamRoute = task.result
+            producer.start()
+            accelerometer!!.start()
+            null
+        }
+    }
+    @Throws(UnsupportedModuleException::class)
+    protected fun boardReady() {
+        accelerometer = mwBoard!!.getModuleOrThrow(Accelerometer::class.java)
     }
 }

@@ -512,4 +512,19 @@
         <item>zipper</item>
     </string-array>
     <string name="change_UID"><font color='#0000FF'>(change)</font></string>
+<!--    <string name="confirmation_gmail_password">zrynokqfpzqkqlly</string>-->
+
+    //wrist sensor
+    <string name="title_select_device">Select Device</string>
+    <string name="title_connecting">Connecting</string>
+    <string name="message_wait">Please wait</string>
+    <string name="label_cancel">Cancel</string>
+    <string name="label_ok">OK</string>
+    <string name="message_no_config">No configuration options for this panel</string>
+    <string name="error_fragment_bus">must implement the FragmentBus interface</string>
+    <string name="title_error">Error</string>
+    <string name="error_unsupported_module">module (sensor) is not supported on this board</string>
+    <string name="label_start_sample">Start Sampling</string>
+    <string name="label_clear">Clear</string>
+    <string name="label_save">Save</string>
 </resources>
