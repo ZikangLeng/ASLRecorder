@@ -5,12 +5,14 @@ package edu.gatech.ccg.aslrecorder.splash
 
 import android.Manifest
 import android.accounts.AccountManager
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.*
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
+import android.util.MutableBoolean
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -21,13 +23,19 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
-import bolts.Task
 import com.mbientlab.metawear.*
 import com.mbientlab.metawear.android.BtleService
 import com.mbientlab.metawear.android.BtleService.LocalBinder
-import com.mbientlab.metawear.builder.RouteComponent
-import com.mbientlab.metawear.data.Acceleration
 import com.mbientlab.metawear.module.Accelerometer
+import com.tapwithus.sdk.TapListener
+import com.tapwithus.sdk.TapSdk
+import com.tapwithus.sdk.airmouse.AirMousePacket
+import com.tapwithus.sdk.bluetooth.BluetoothManager
+import com.tapwithus.sdk.bluetooth.TapBluetoothManager
+import com.tapwithus.sdk.mode.RawSensorData
+import com.tapwithus.sdk.mode.TapInputMode
+import com.tapwithus.sdk.mouse.MousePacket
+import com.tapwithus.sdk.tap.Tap
 import edu.gatech.ccg.aslrecorder.*
 import edu.gatech.ccg.aslrecorder.Constants.MAX_RECORDINGS_IN_SITTING
 import edu.gatech.ccg.aslrecorder.Constants.RECORDINGS_PER_WORD
@@ -36,6 +44,7 @@ import edu.gatech.ccg.aslrecorder.R
 import edu.gatech.ccg.aslrecorder.databinding.ActivitySplashRevisedBinding
 import edu.gatech.ccg.aslrecorder.recording.RecordingActivity
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.math.min
 
 
@@ -46,11 +55,15 @@ class SplashScreenActivity: ComponentActivity(), ServiceConnection {
     protected var mwBoard: MetaWearBoard? = null
     private var accelerometer: Accelerometer? = null
     protected var streamRoute: Route? = null
-    private val ACC_RANG = 4f
-    private val ACC_FREQ = 50f
-    protected var samplePeriod = 0f
-    val acc_data_list = arrayListOf<Triple<Float, Float,Float>>()
     lateinit var wristStatus: TextView
+
+    private val sdk: TapSdk? = null
+    private var lastConnectedTapAddress = ""
+    lateinit var ringStatus: TextView
+    lateinit var tapIdentifier: String
+    //var rawMode = MutableBooleanParcelable(false)
+    lateinit var rawModePref :SharedPreferences
+//    lateinit var ringDataList:  ArrayList<String>
 
 
     var uid = ""
@@ -291,6 +304,7 @@ class SplashScreenActivity: ComponentActivity(), ServiceConnection {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        //connect to wrist sensor
         btDevice =
             intent.getParcelableExtra<BluetoothDevice>("WRIST")
         applicationContext.bindService(
@@ -298,6 +312,24 @@ class SplashScreenActivity: ComponentActivity(), ServiceConnection {
             this,
             BIND_AUTO_CREATE
         )
+        //connect to tap strap 2
+//        rawMode = true
+        val bluetoothManager =
+            BluetoothManager(applicationContext, BluetoothAdapter.getDefaultAdapter())
+        val tapBluetoothManager = TapBluetoothManager(bluetoothManager)
+        val sdk = TapSdk(tapBluetoothManager)
+        sdk.enableDebug()
+        sdk.registerTapListener(tapListener)
+        if (sdk.isConnectionInProgress) {
+            Log.d("MyTag", "A Tap is connecting")
+        }
+        sdk.setDefaultMode(TapInputMode.rawSensorData(2.toByte(), 2.toByte(), 2.toByte()), true)
+        rawModePref = getSharedPreferences("raw_mode", MODE_PRIVATE)
+        with(rawModePref.edit()) {
+            putBoolean("rawMode",false)
+            apply()
+        }
+
 
         handleRecordingResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
             run {
@@ -327,6 +359,8 @@ class SplashScreenActivity: ComponentActivity(), ServiceConnection {
         val binding = ActivitySplashRevisedBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+
+        ringStatus = findViewById(R.id.ring_status)
 
         hasRequestedPermission = false
 
@@ -360,6 +394,7 @@ class SplashScreenActivity: ComponentActivity(), ServiceConnection {
 
         uidBox.text = this.uid
 
+//        ringDataList = ArrayList<String>()
         wordList = ArrayList()
         for (category in WordDefinitions.values()) {
             for (word in resources.getStringArray(category.resourceId)) {
@@ -396,6 +431,8 @@ class SplashScreenActivity: ComponentActivity(), ServiceConnection {
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
         private const val REQUEST_CODE_PERMISSIONS = 10
         private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
+        var ringDataList = java.util.ArrayList<String>()
     }
 
 
@@ -404,13 +441,10 @@ class SplashScreenActivity: ComponentActivity(), ServiceConnection {
             Log.i("Mytag", "btDevice is null")
         }
         mwBoard = (service as LocalBinder).getMetaWearBoard(btDevice)
-        //mwBoard.onUnexpectedDisconnect(UnexpectedDisconnectHandler { status: Int -> attemptReconnect() })
         try {
             boardReady = true
             boardReady()
-            //setup()
         } catch (e: UnsupportedModuleException) {
-            //unsupportedModule()
         }
     }
 
@@ -428,66 +462,101 @@ class SplashScreenActivity: ComponentActivity(), ServiceConnection {
         wristStatus.text = "Wrist Sensor: Connected"
     }
 
-//    private fun attemptReconnect() {
-//        attemptReconnect(0)
-//    }
-//
-//    private fun attemptReconnect(delay: Long) {
-//        val dialogFragment = ReconnectDialogFragment.newInstance(btDevice)
-//        dialogFragment.show(getSupportFragmentManager(), RECONNECT_DIALOG_TAG)
-//        if (delay != 0L) {
-//            taskScheduler.postDelayed(Runnable {
-//                ScannerActivity.reconnect(mwBoard).continueWith(reconnectResult)
-//            }, delay)
-//        } else {
-//            ScannerActivity.reconnect(mwBoard).continueWith(reconnectResult)
-//        }
-//    }
-//
-//    class ReconnectDialogFragment : DialogFragment(),
-//        ServiceConnection {
-//        private var reconnectDialog: ProgressDialog? = null
-//        private var btDevice: BluetoothDevice? = null
-//        private var currentMwBoard: MetaWearBoard? = null
-//        override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-//            btDevice = requireArguments().getParcelable(KEY_BLUETOOTH_DEVICE)
-//            requireActivity().applicationContext.bindService(
-//                Intent(activity, BtleService::class.java),
-//                this,
-//                BIND_AUTO_CREATE
-//            )
-//            reconnectDialog = ProgressDialog(activity)
-//            reconnectDialog!!.setTitle(getString(R.string.title_reconnect_attempt))
-//            reconnectDialog!!.setMessage(getString(R.string.message_wait))
-//            reconnectDialog!!.setCancelable(false)
-//            reconnectDialog!!.setCanceledOnTouchOutside(false)
-//            reconnectDialog!!.isIndeterminate = true
-//            reconnectDialog!!.setButton(
-//                DialogInterface.BUTTON_NEGATIVE, getString(R.string.label_cancel)
-//            ) { dialogInterface: DialogInterface?, i: Int ->
-//                currentMwBoard!!.disconnectAsync()
-//                requireActivity().finish()
+    private val tapListener: TapListener = object : TapListener {
+        override fun onBluetoothTurnedOn() {
+            Log.d("MyTag","Bluetooth turned ON")
+        }
+
+        override fun onBluetoothTurnedOff() {
+            Log.d("MyTag","Bluetooth turned OFF")
+        }
+
+        override fun onTapStartConnecting(tapIdentifier: String) {
+            Log.d("MyTag","Tap started connecting - $tapIdentifier")
+        }
+
+        override fun onTapConnected(tapIdentifier: String) {
+            ringStatus.text = "Ring Sensor: Connected"
+            Log.d("MyTag","TAP connected $tapIdentifier")
+            val tap: Tap? = sdk?.getCachedTap(tapIdentifier)
+            if (tap == null) {
+                Log.d("MyTag","Unable to get cached Tap")
+                return
+            }
+            lastConnectedTapAddress = tapIdentifier
+            Log.d("MyTag",tap.toString())
+
+        }
+
+        override fun onTapDisconnected(tapIdentifier: String) {
+            ringStatus.text = "Ring Sensor: Not Connected"
+            Log.d("MyTag","TAP disconnected $tapIdentifier")
+        }
+
+        override fun onTapResumed(tapIdentifier: String) {
+            Log.d("MyTag","TAP resumed $tapIdentifier")
+            val tap: Tap? = sdk?.getCachedTap(tapIdentifier)
+            if (tap == null) {
+                Log.d("MyTag","Unable to get cached Tap")
+                return
+            }
+            Log.d("MyTag",tap.toString())
+        }
+
+        override fun onTapChanged(tapIdentifier: String) {
+            Log.d("MyTag","TAP changed $tapIdentifier")
+            val tap: Tap? = sdk?.getCachedTap(tapIdentifier)
+            if (tap == null) {
+                Log.d("MyTag","Unable to get cached Tap")
+                return
+            }
+            Log.d("MyTag","TAP changed $tap")
+        }
+
+        override fun onTapInputReceived(tapIdentifier: String, data: Int, repeatData: Int) {
+            Log.d("MyTag","TapInputReceived - $tapIdentifier, $data, repeatData = $repeatData")
+        }
+
+        override fun onTapShiftSwitchReceived(tapIdentifier: String, data: Int) {
+            Log.d("MyTag","TapSwitchShiftReceived - $tapIdentifier, $data")
+        }
+
+        override fun onMouseInputReceived(tapIdentifier: String, data: MousePacket) {}
+
+        override fun onAirMouseInputReceived(tapIdentifier: String, data: AirMousePacket) {
+            Log.d("MyTag",tapIdentifier + " air mouse input received " + data.gesture.int)
+        }
+
+        override fun onRawSensorInputReceived(tapIdentifier: String, rsData: RawSensorData) {
+//            println(rawMode.value)
+            val rawMode = rawModePref.getBoolean("rawMode", false)
+//            println(rawMode)
+            if (rawMode && rsData.dataType === RawSensorData.DataType.Device ){
+                println(rsData)
+                ringDataList.add(rsData.toString())
+            }
+//            //RawSensorData Object has a timestamp, dataType and an array points(x,y,z).
+//            if (rsData.dataType === RawSensorData.DataType.Device) {
+//                // Fingers accelerometer.
+//                // Each point in array represents the accelerometer value of a finger (thumb, index, middle, ring, pinky).
+//                val thumb = rsData.getPoint(RawSensorData.iDEV_INDEX)
+//                println(rsData)
+//                if (thumb != null) {
+//                    val x = thumb.x
+//                    val y = thumb.y
+//                    val z = thumb.z
+//                }
+//                // Etc... use indexes: RawSensorData.iDEV_THUMB, RawSensorData.iDEV_INDEX, RawSensorData.iDEV_MIDDLE, RawSensorData.iDEV_RING, RawSensorData.iDEV_PINKY
 //            }
-//            return reconnectDialog as ProgressDialog
-//        }
-//
-//        override fun onServiceConnected(name: ComponentName, service: IBinder) {
-//            currentMwBoard = (service as LocalBinder).getMetaWearBoard(btDevice)
-//        }
-//
-//        override fun onServiceDisconnected(name: ComponentName) {}
-//
-//        companion object {
-//            private const val KEY_BLUETOOTH_DEVICE =
-//                "com.mbientlab.metawear.app.NavigationActivity.ReconnectDialogFragment.KEY_BLUETOOTH_DEVICE"
-//
-//            fun newInstance(btDevice: BluetoothDevice?): ReconnectDialogFragment {
-//                val args = Bundle()
-//                args.putParcelable(KEY_BLUETOOTH_DEVICE, btDevice)
-//                val newFragment = ReconnectDialogFragment()
-//                newFragment.arguments = args
-//                return newFragment
-//            }
-//        }
-//    }
+        }
+
+        override fun onTapChangedState(tapIdentifier: String, state: Int) {
+            Log.d("MyTag","$tapIdentifier changed state: $state")
+        }
+
+        override fun onError(tapIdentifier: String, code: Int, description: String) {
+            Log.d("MyTag","Error - $tapIdentifier - $code - $description")
+        }
+    }
+
 }

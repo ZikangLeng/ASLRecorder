@@ -378,26 +378,26 @@ fun sendEmail(from: String, to: List<String>, subject: String, content: String, 
         })
     })
 
-    val contents = wristFile.readText()
-    println(contents)
-
-    val wristSource = FileDataSource(wristFile)
-    val fileBodyPart = MimeBodyPart()
-    fileBodyPart.attachFile(wristFile)
-    //fileBodyPart.setHeader("Content-Type", "text/csv")
-    fileBodyPart.setHeader("Content-Type", "plain/text")
-    msg.setContent(MimeMultipart().apply {
-        addBodyPart(MimeBodyPart().apply {
-            setText(content, "iso-8859-1")
-        })
-//        addBodyPart(MimeBodyPart().apply {
-//            dataHandler = DataHandler(wristSource)
-//            disposition = Part.ATTACHMENT
-//            fileName = wristFile.name
+//    val contents = wristFile.readText()
+//    println(contents)
 //
+//    val wristSource = FileDataSource(wristFile)
+//    val fileBodyPart = MimeBodyPart()
+//    fileBodyPart.attachFile(wristFile)
+//    //fileBodyPart.setHeader("Content-Type", "text/csv")
+//    fileBodyPart.setHeader("Content-Type", "plain/text")
+//    msg.setContent(MimeMultipart().apply {
+//        addBodyPart(MimeBodyPart().apply {
+//            setText(content, "iso-8859-1")
 //        })
-        addBodyPart(fileBodyPart)
-    })
+////        addBodyPart(MimeBodyPart().apply {
+////            dataHandler = DataHandler(wristSource)
+////            disposition = Part.ATTACHMENT
+////            fileName = wristFile.name
+////
+////        })
+//        addBodyPart(fileBodyPart)
+//    })
 
     Log.d("EMAIL", "Attempting to send email with subject '$subject' and " +
             "message '$content'")

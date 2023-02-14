@@ -54,6 +54,7 @@ dependencies {
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
+    implementation 'io.github.tapwithus:tap-android-sdk:0.3.6'
     implementation 'com.mbientlab:metawear:4.0.0'
     implementation 'com.mbientlab.bletoolbox:scanner:0.3.2'
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'

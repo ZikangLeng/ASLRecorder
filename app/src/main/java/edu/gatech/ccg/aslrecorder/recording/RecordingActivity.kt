@@ -26,10 +26,12 @@ package edu.gatech.ccg.aslrecorder.recording
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.PendingIntent.getActivity
 import android.bluetooth.BluetoothDevice
 import android.content.*
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
 import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.ColorMatrix
@@ -41,6 +43,7 @@ import android.media.ExifInterface.TAG_IMAGE_DESCRIPTION
 import android.media.MediaCodec
 import android.media.MediaRecorder
 import android.media.ThumbnailUtils
+import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
 import android.util.Log
@@ -54,10 +57,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import bolts.Task
-import com.github.mikephil.charting.data.LineData
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.mbientlab.metawear.Data
 import com.mbientlab.metawear.MetaWearBoard
@@ -71,13 +74,11 @@ import edu.gatech.ccg.aslrecorder.*
 import edu.gatech.ccg.aslrecorder.Constants.RECORDINGS_PER_WORD
 import edu.gatech.ccg.aslrecorder.Constants.WORDS_PER_SESSION
 import edu.gatech.ccg.aslrecorder.databinding.ActivityRecordBinding
+import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import java.io.BufferedInputStream
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
+import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
@@ -101,6 +102,7 @@ data class RecordingEntryVideo(val file: File, val videoStart: Date, val signSta
  * @version 1.1.0
  */
 class RecordingActivity : AppCompatActivity(), ServiceConnection {
+    val CREATE_FILE = 1
     private var boardReady = false
     private var btDevice: BluetoothDevice? = null
     protected var mwBoard: MetaWearBoard? = null
@@ -112,8 +114,15 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
     val wristDataList = arrayListOf<Triple<Float, Float,Float>>()
     private lateinit var wristFilename: String
     lateinit var wristFile:File
+    lateinit var wristFileUri: Uri
+
+    lateinit var rawMode : MutableBooleanParcelable
+    lateinit var rawModePref :SharedPreferences
+    private lateinit var ringFilename: String
+
     companion object {
         private val TAG = RecordingActivity::class.java.simpleName
+
 
         /**
          * Record video at 15 Mbps. At 1944p30, this level of detail should be more than high
@@ -581,6 +590,8 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
                 cameraHandler.removeCallbacksAndMessages(null)
                 Log.d("onStop", "Stop and release all recording variables")
                 concludeSensorRecording()
+                wristDataList.clear()
+                SplashScreenActivity.Companion.ringDataList.clear()
             }
             wordPager.adapter = null
             super.onStop()
@@ -596,6 +607,8 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
             Log.e(TAG, "Error in RecordingActivity.onDestroy()", exc)
         }
         concludeSensorRecording()
+        wristDataList.clear()
+        SplashScreenActivity.Companion.ringDataList.clear()
     }
 
     fun generateCameraThread() = HandlerThread("CameraThread").apply { start() }
@@ -609,6 +622,11 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
             this,
             BIND_AUTO_CREATE
         )
+
+//        SplashScreenActivity.Companion.ringDataList = intent.getStringArrayListExtra("RING_DATA") as ArrayList<String>
+//        rawMode = intent.getParcelableExtra<MutableBooleanParcelable>("RAW_MODE")!!
+        rawModePref = getSharedPreferences("raw_mode", MODE_PRIVATE)
+
 
         binding = ActivityRecordBinding.inflate(layoutInflater)
         val view = binding.root
@@ -656,10 +674,11 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
         wordList = randomChoice(fullWordList, WORDS_PER_SESSION, randomSeed)
         currentWord = wordList[0]
 
-        val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss.SSS", Locale.US)
+        val sdf = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.US)
         val currentWord = this@RecordingActivity.currentWord
-        filename = "${userUID}-${recordingCategory}-${sdf.format(Date())}"
-        wristFilename = "${userUID}-wrist-${recordingCategory}-${sdf.format(Date())}.csv"
+        filename = "${userUID}-${sdf.format(Date())}"
+        wristFilename = "${userUID}_wrist_${sdf.format(Date())}.csv"
+        ringFilename = "${userUID}_sensor_${sdf.format(Date())}.csv"
         metadataFilename = filename
 
         // Set title bar text
@@ -820,6 +839,7 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
 
     fun concludeRecordingSession() {
         //concludeSensorRecording()
+        dataToCSV()
 
         val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
         with (prefs.edit()) {
@@ -931,7 +951,7 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
             kotlin.run {
                 Log.d("EMAIL", "Running thread to send email...")
                 sendEmail("gtsignstudy.confirmation@gmail.com",
-                    listOf("kevenleng2003@gmail.com"), subject, body, emailPassword, context.getFileStreamPath(wristFilename))
+                    listOf("kevenleng2003@gmail.com"), subject, body, emailPassword, wristFile)
             }
         }
 
@@ -997,17 +1017,25 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
             streamRoute!!.remove()
             streamRoute = null
         }
-        dataToCSV()
+        with(rawModePref.edit()) {
+            putBoolean("rawMode",false)
+            apply()
+        }
+        //dataToCSV()
 
-        wristDataList.clear()
+        //wristDataList.clear()
     }
 
     fun dataToCSV() {
-        //wristFile = File(wristFilename)
-        val dataType = "acceleration"
-        val CSV_HEADER = String.format("time,x-%s,y-%s,z-%s%n", dataType, dataType, dataType)
+        wristFile = File(wristFilename)
+//        val outputDirCSV = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)!!.absolutePath
+//        wristFile = File(outputDirCSV, wristFilename)
+        var dataType = "acceleration"
+        var CSV_HEADER = String.format("time,x-%s,y-%s,z-%s%n", dataType, dataType, dataType)
+
         try {
             val fos: FileOutputStream = openFileOutput(wristFilename, MODE_PRIVATE)
+            //val fos: FileOutputStream = FileOutputStream(wristFile)
             fos.write(CSV_HEADER.toByteArray())
 
             for (i in 0 until wristDataList.size) {
@@ -1026,7 +1054,68 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
         }
 
 
+        wristFile = context.getFileStreamPath(wristFilename)
+        var contents = wristFile.readText()
+        println(contents)
+
+        //savetoDrive(wristFile, wristFilename)
+
+        //write in ring data
+        dataType = "data"
+        CSV_HEADER = String.format("%s%n", dataType)
+        try {
+            val fos: FileOutputStream = openFileOutput(ringFilename, MODE_PRIVATE)
+            fos.write(CSV_HEADER.toByteArray())
+
+            for (i in 0 until SplashScreenActivity.Companion.ringDataList.size) {
+                fos.write(
+                    String.format("%s%n", SplashScreenActivity.Companion.ringDataList[i]).toByteArray()
+                )
+            }
+            fos.close()
+        } catch (e:Exception ) {
+            e.printStackTrace()
+        }
+
+        val ringFile = context.getFileStreamPath(ringFilename)
+        contents = ringFile.readText()
+        println(contents)
+
+        savetoDrive(ringFile, ringFilename)
+
+        wristDataList.clear()
+        SplashScreenActivity.Companion.ringDataList.clear()
     }
+
+    fun savetoDrive(file: File, filename: String){
+        val contentUri = FileProvider.getUriForFile(
+            context,
+            "edu.gatech.ccg.aslrecorder.fileprovider",
+            file
+        )
+
+        val intent = Intent(Intent.ACTION_SEND)
+        intent.type = "text/plain"
+        intent.putExtra(Intent.EXTRA_SUBJECT, filename)
+        intent.putExtra(Intent.EXTRA_STREAM, contentUri)
+
+        val chooser = Intent.createChooser(intent, "Saving Data")
+
+        val resInfoList: List<ResolveInfo> = context.packageManager
+            .queryIntentActivities(chooser, PackageManager.MATCH_DEFAULT_ONLY)
+
+        for (resolveInfo in resInfoList) {
+            val packageName = resolveInfo.activityInfo.packageName
+            context.grantUriPermission(
+                packageName,
+                contentUri,
+                Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        }
+
+        startActivity(chooser)
+    }
+
 
     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
         if (btDevice == null){
@@ -1065,13 +1154,21 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
                         Acceleration::class.java
                     )
                 println(value)
-                wristDataList.add(Triple(value.x(), value.y(), value.z()))
+                SplashScreenActivity.Companion.ringDataList.add(value.toString())
+                println(SplashScreenActivity.Companion.ringDataList.size)
+//                wristDataList.add(Triple(value.x(), value.y(), value.z()))
             }
         }.continueWith<Any?> { task: Task<Route> ->
             streamRoute = task.result
             producer.start()
             accelerometer!!.start()
             null
+        }
+
+//        rawMode.value = true
+        with(rawModePref.edit()) {
+            putBoolean("rawMode",true)
+            apply()
         }
     }
     @Throws(UnsupportedModuleException::class)
