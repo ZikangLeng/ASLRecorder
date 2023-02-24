@@ -12,7 +12,6 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
-import android.util.MutableBoolean
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -40,12 +39,12 @@ import edu.gatech.ccg.aslrecorder.*
 import edu.gatech.ccg.aslrecorder.Constants.MAX_RECORDINGS_IN_SITTING
 import edu.gatech.ccg.aslrecorder.Constants.RECORDINGS_PER_WORD
 import edu.gatech.ccg.aslrecorder.Constants.WORDS_PER_SESSION
-import edu.gatech.ccg.aslrecorder.R
 import edu.gatech.ccg.aslrecorder.databinding.ActivitySplashRevisedBinding
 import edu.gatech.ccg.aslrecorder.recording.RecordingActivity
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.math.min
+import edu.gatech.ccg.aslrecorder.R
 
 
 class SplashScreenActivity: ComponentActivity(), ServiceConnection {

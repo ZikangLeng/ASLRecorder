@@ -28,7 +28,6 @@ package edu.gatech.ccg.aslrecorder.summary
 import android.os.Bundle
 import android.view.View
 import androidx.annotation.LayoutRes
-import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import edu.gatech.ccg.aslrecorder.recording.RecordingActivity
 import edu.gatech.ccg.aslrecorder.recording.RecordingEntryVideo

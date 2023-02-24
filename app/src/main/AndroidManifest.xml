@@ -22,7 +22,7 @@
         <service android:name="com.mbientlab.metawear.android.BtleService" />
 <!--        <service android:name=".wrist_sensor.DfuService" />-->
 
-        <activity android:exported="true" android:name=".wrist_sensor.ScannerActivity" android:label="@string/app_name" >>
+        <activity android:exported="true" android:name="edu.gatech.ccg.aslrecorder.wrist_sensor.ScannerActivity" android:label="@string/app_name" >>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -31,15 +31,15 @@
         </activity>
 
 
-        <activity android:exported="true" android:name=".splash.SplashScreenActivity" android:parentActivityName=".wrist_sensor.ScannerActivity">
+        <activity android:exported="true" android:name="edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity" android:parentActivityName="edu.gatech.ccg.aslrecorder.wrist_sensor.ScannerActivity">
 <!--            <intent-filter>-->
 <!--                <action android:name="android.intent.action.MAIN" />-->
 
 <!--                <category android:name="android.intent.category.LAUNCHER" />-->
 <!--            </intent-filter>-->
         </activity>
-        <activity android:name=".recording.RecordingActivity"
-                  android:parentActivityName=".splash.SplashScreenActivity">
+        <activity android:name="edu.gatech.ccg.aslrecorder.recording.RecordingActivity"
+                  android:parentActivityName="edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity">
 <!--            <intent-filter>-->
 <!--                <action android:name="android.intent.action.MAIN" />-->
 

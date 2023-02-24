@@ -30,8 +30,6 @@ import java.io.File
 import java.lang.Math.min
 import java.security.MessageDigest
 import java.util.*
-import javax.activation.DataHandler
-import javax.activation.FileDataSource
 import javax.mail.*
 import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeBodyPart
@@ -341,7 +339,7 @@ fun sendEmail(from: String, to: List<String>, subject: String, content: String, 
     val server = "smtp.gmail.com"
 
     val auth = PasswordAuthentication(
-        "gtsignstudy.confirmation@gmail.com",
+        from,
         password
     )
 
@@ -353,8 +351,8 @@ fun sendEmail(from: String, to: List<String>, subject: String, content: String, 
     props["mail.smtp.ssl.trust"] = server
     props["mail.mime.charset"] = "UTF-8"
 
-    props["mail.smtp.connectiontimeout"] = "50000"
-    props["mail.smtp.timeout"] = "50000"
+    props["mail.smtp.connectiontimeout"] = "20000"
+    props["mail.smtp.timeout"] = "20000"
 
     val msg: Message = MimeMessage(Session.getDefaultInstance(props, object : Authenticator() {
         override fun getPasswordAuthentication() = auth

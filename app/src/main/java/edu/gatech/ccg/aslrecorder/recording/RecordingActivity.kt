@@ -26,7 +26,6 @@ package edu.gatech.ccg.aslrecorder.recording
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.PendingIntent.getActivity
 import android.bluetooth.BluetoothDevice
 import android.content.*
 import android.content.pm.ActivityInfo
@@ -109,7 +108,7 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
     private var accelerometer: Accelerometer? = null
     protected var streamRoute: Route? = null
     private val ACC_RANG = 4f
-    private val ACC_FREQ = 50f
+    private val ACC_FREQ = 100f
     protected var samplePeriod = 0f
     val wristDataList = arrayListOf<Triple<Float, Float,Float>>()
     private lateinit var wristFilename: String
@@ -410,6 +409,7 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
                 }
                 true
             }
+            setup()
         }
     }
 
@@ -562,6 +562,8 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
         filterMatrix.setSaturation(1.0f)
         val filter = ColorMatrixColorFilter(filterMatrix)
         recordingLightView.colorFilter = filter
+
+//        setup()
     }
 
     override fun onRestart() {
@@ -950,12 +952,20 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
         val emailTask = Thread {
             kotlin.run {
                 Log.d("EMAIL", "Running thread to send email...")
-                sendEmail("gtsignstudy.confirmation@gmail.com",
-                    listOf("kevenleng2003@gmail.com"), subject, body, emailPassword, wristFile)
+                sendEmail("gtaslconfirmation@gmail.com",
+                    listOf("kevenleng2003@gmail.com", "jhgt1791@gmail.com"), subject, body, emailPassword, wristFile)
             }
         }
 
         emailTask.start()
+    }
+
+    fun formatTime(millis: Long): String {
+        val minutes = millis / 60_000
+        val seconds = ((millis % 60_000) / 1000).toInt()
+        val millisRemaining = (millis % 1_000).toInt()
+
+        return "$minutes:${padZeroes(seconds, 2)}.${padZeroes(millisRemaining, 3)}"
     }
 
     fun createTimestampFileAllinOne(sampleVideos: HashMap<String, ArrayList<RecordingEntryVideo>>) {
@@ -1033,32 +1043,49 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
         var dataType = "acceleration"
         var CSV_HEADER = String.format("time,x-%s,y-%s,z-%s%n", dataType, dataType, dataType)
 
-        try {
-            val fos: FileOutputStream = openFileOutput(wristFilename, MODE_PRIVATE)
-            //val fos: FileOutputStream = FileOutputStream(wristFile)
-            fos.write(CSV_HEADER.toByteArray())
-
-            for (i in 0 until wristDataList.size) {
-                fos.write(
-                    String.format(
-                        Locale.US, "%.3f,%.3f,%.3f,%.3f%n", i * samplePeriod,
-                        wristDataList[i].first,
-                        wristDataList[i].second,
-                        wristDataList[i].third
-                    ).toByteArray()
-                )
-            }
-            fos.close()
-        } catch (e:Exception ) {
-            e.printStackTrace()
-        }
-
-
-        wristFile = context.getFileStreamPath(wristFilename)
-        var contents = wristFile.readText()
-        println(contents)
+//        try {
+//            val fos: FileOutputStream = openFileOutput(wristFilename, MODE_PRIVATE)
+//            //val fos: FileOutputStream = FileOutputStream(wristFile)
+//            fos.write(CSV_HEADER.toByteArray())
+//
+//            for (i in 0 until wristDataList.size) {
+//                fos.write(
+//                    String.format(
+//                        Locale.US, "%.3f,%.3f,%.3f,%.3f%n", i * samplePeriod,
+//                        wristDataList[i].first,
+//                        wristDataList[i].second,
+//                        wristDataList[i].third
+//                    ).toByteArray()
+//                )
+//            }
+//            fos.close()
+//        } catch (e:Exception ) {
+//            e.printStackTrace()
+//        }
+//
+//
+//        wristFile = context.getFileStreamPath(wristFilename)
+//        var contents = wristFile.readText()
+//        println(contents)
 
         //savetoDrive(wristFile, wristFilename)
+
+
+        //wirte in the words into csv
+        var wordList = ArrayList<Pair<String, Int>>()
+        var recordings = ArrayList<Pair<String, RecordingEntryVideo>>()
+        val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
+        for (entry in sessionVideoFiles) {
+            if (entry.value.isNotEmpty()) {
+                val prefsKey = "RECORDING_COUNT_${entry.key}"
+                val recordingCount = prefs.getInt(prefsKey, 0)
+
+                wordList.add(Pair(entry.key, recordingCount))
+                recordings.addAll(entry.value.map { Pair(entry.key, it) })
+            }
+        }
+        recordings.sortBy { it.second.signStart }
+
 
         //write in ring data
         dataType = "data"
@@ -1072,13 +1099,40 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
                     String.format("%s%n", SplashScreenActivity.Companion.ringDataList[i]).toByteArray()
                 )
             }
+
+            //write in the words
+            fos.write(
+                String.format("%s%n", "_Words_").toByteArray()
+            )
+
+            var body = ""
+            for (entry in recordings) {
+                body += "${entry.first}"
+                if (!entry.second.isValid) {
+                    body += " (discarded)"
+                }
+
+                val clipData = entry.second
+
+                val startMillis = clipData.signStart.time - clipData.videoStart.time
+                val endMillis = clipData.signEnd.time - clipData.videoStart.time
+
+                body += ", ${formatTime(startMillis)} , ${formatTime(endMillis)}"
+
+                fos.write(
+                    String.format("%s%n", body).toByteArray()
+                )
+                body = ""
+            }
+
+
             fos.close()
         } catch (e:Exception ) {
             e.printStackTrace()
         }
 
         val ringFile = context.getFileStreamPath(ringFilename)
-        contents = ringFile.readText()
+        var contents = ringFile.readText()
         println(contents)
 
         savetoDrive(ringFile, ringFilename)
@@ -1095,7 +1149,7 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
         )
 
         val intent = Intent(Intent.ACTION_SEND)
-        intent.type = "text/plain"
+        intent.type = "plain/text"
         intent.putExtra(Intent.EXTRA_SUBJECT, filename)
         intent.putExtra(Intent.EXTRA_STREAM, contentUri)
 
@@ -1126,7 +1180,7 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
         try {
             boardReady = true
             boardReady()
-            setup()
+//            setup()
         } catch (e: UnsupportedModuleException) {
             //unsupportedModule()
         }

@@ -26,14 +26,11 @@ package edu.gatech.ccg.aslrecorder.recording
 
 import android.os.Bundle
 import android.view.View
-import android.widget.Button
 import android.widget.TextView
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.LayoutRes
 import androidx.fragment.app.Fragment
 import edu.gatech.ccg.aslrecorder.Constants.RECORDINGS_PER_WORD
 import edu.gatech.ccg.aslrecorder.R
-import edu.gatech.ccg.aslrecorder.splash.SplashScreenActivity
 
 class RequestPermissionFragment(label: String, @LayoutRes layout: Int): Fragment(layout) {
 
