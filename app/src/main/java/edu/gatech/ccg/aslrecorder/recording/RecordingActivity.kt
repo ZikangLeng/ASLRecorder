@@ -1207,9 +1207,10 @@ class RecordingActivity : AppCompatActivity(), ServiceConnection {
                     data.value(
                         Acceleration::class.java
                     )
-                println(value)
-                SplashScreenActivity.Companion.ringDataList.add(value.toString())
-                println(SplashScreenActivity.Companion.ringDataList.size)
+//                println(value)
+//                println(data.timestamp().timeInMillis)
+                SplashScreenActivity.Companion.ringDataList.add(String.format("%s,%s", data.timestamp().timeInMillis, value.toString()) )
+//                println(SplashScreenActivity.Companion.ringDataList.size)
 //                wristDataList.add(Triple(value.x(), value.y(), value.z()))
             }
         }.continueWith<Any?> { task: Task<Route> ->

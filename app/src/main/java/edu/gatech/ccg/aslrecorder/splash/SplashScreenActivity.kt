@@ -531,7 +531,7 @@ class SplashScreenActivity: ComponentActivity(), ServiceConnection {
             val rawMode = rawModePref.getBoolean("rawMode", false)
 //            println(rawMode)
             if (rawMode && rsData.dataType === RawSensorData.DataType.Device ){
-                println(rsData)
+//                println(rsData)
                 ringDataList.add(rsData.toString())
             }
 //            //RawSensorData Object has a timestamp, dataType and an array points(x,y,z).
